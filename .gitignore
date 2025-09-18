@@ -11,14 +11,14 @@ __pycache__/
 .env
 .env.*
 
-# Vite/React
+# Vite cache
 frontend/client/.vite/
 frontend/client/.cache/
 
 # Local env
 frontend/client/.env.local
 
-# DB/Artifacts
+# DB 파일(로컬 only)
 backend/app/db/*.db
 backend/app/db/*.sqlite
 *.sqlite

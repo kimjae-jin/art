@@ -1,126 +1,52 @@
-// frontend/client/src/App.tsx
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
+import { Header } from "./components/Header";
 import EngineersPage from "./pages/EngineersPage";
 
-/** 시계 훅: format을 useCallback으로 고정하고 deps에 포함 */
-function useClock() {
-  const day = useMemo(() => ["일", "월", "화", "수", "목", "금", "토"], []);
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  const format = useCallback(
-    (d: Date) => {
-      const yy = pad(d.getFullYear() % 100);
-      const mm = pad(d.getMonth() + 1);
-      const dd = pad(d.getDate());
-      const dow = day[d.getDay()];
-      const h = d.getHours();
-      const m = pad(d.getMinutes());
-      const s = pad(d.getSeconds());
-      return `${yy}.${mm}.${dd}.(${dow}) ${h}:${m}:${s}`;
-    },
-    [day], // day가 바뀌면 format도 갱신
-  );
-
-  const [now, setNow] = useState(() => format(new Date()));
-  useEffect(() => {
-    const t = window.setInterval(() => setNow(format(new Date())), 1000);
-    return () => window.clearInterval(t);
-  }, [format]); // 경고 해소
-
-  return now;
-}
-
-function useTheme() {
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("theme");
-    if (saved === "dark" || saved === "light") return saved;
-    const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-    return prefersDark ? "dark" : "light";
-  });
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-  return { theme, setTheme };
-}
-
-function Header() {
-  const { theme, setTheme } = useTheme();
-  const now = useClock();
-  const navigate = useNavigate();
-  return (
-    <header className="app-header main-header">
-      <button className="logo" onClick={() => navigate("/")}>ERP</button>
-      <div className="spacer" />
-      <span className="clock" aria-label="현재 시각">{now}</span>
-      <button
-        aria-label="모드 전환"
-        className="mode-btn"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        title={theme === "dark" ? "라이트 모드" : "다크 모드"}
-      >
-        {theme === "dark" ? "☀️" : "🌙"}
-      </button>
-    </header>
-  );
-}
-
-function Home() {
-  const cards = [
+// 홈 그리드 버튼(기존 스타일 유지)
+const Home: React.FC = () => {
+  const items = [
     { to: "/engineers", label: "기술인" },
-    { to: "/projects", label: "프로젝트" },
-    { to: "/clients", label: "거래처" },
-    { to: "/licenses", label: "면허" },
-    { to: "/equipment", label: "장비" },
-    { to: "/photos", label: "사진대지" },
-    { to: "/invoices", label: "청구/세금계산서" },
-    { to: "/quotations", label: "견적" },
-    { to: "/training", label: "교육/자격" },
-    { to: "/awards", label: "상훈" },
-    { to: "/alerts", label: "알림 대시보드" },
+    { to: "#", label: "프로젝트" },
+    { to: "#", label: "거래처" },
+    { to: "#", label: "면허" },
+    { to: "#", label: "사무집기" },
+    { to: "#", label: "장비(검교정)" },
+    { to: "#", label: "교육/상훈" },
+    { to: "#", label: "실적" },
+    { to: "#", label: "발표/대외활동" },
   ];
   return (
-    <main className="container">
-      <h1 className="title">카테고리를 선택하세요</h1>
-      <div className="grid">
-        {cards.map((c) => (
-          <Link key={c.to} to={c.to} className="card" draggable={false}>
-            {c.label}
-          </Link>
-        ))}
+    <div className="container">
+      <div className="card" style={{ padding: 16 }}>
+        <h2 style={{ margin: "0 0 12px 0" }}>카테고리 선택</h2>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {items.map((x) => (
+            <Link key={x.label} className="btn" to={x.to} style={{ minWidth: 96, textAlign: "center" }}>
+              {x.label}
+            </Link>
+          ))}
+        </div>
       </div>
-    </main>
+    </div>
   );
-}
+};
 
-function Placeholder({ name }: { name: string }) {
+const App: React.FC = () => {
   return (
-    <main className="container">
-      <h1 className="title">{name}</h1>
-      <p className="sub">이 페이지는 나중에 실제 기능 화면으로 교체됩니다.</p>
-    </main>
-  );
-}
-
-export default function App() {
-  return (
-    <div className="app">
+    <BrowserRouter>
       <Header />
+      {/* 기존 상단과 운영페이지 상단 사이 1mm 여백은 index.css의 .app-header + .container 로 확보 */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/engineers" element={<EngineersPage />} />
-        <Route path="/projects" element={<Placeholder name="프로젝트" />} />
-        <Route path="/clients" element={<Placeholder name="거래처" />} />
-        <Route path="/licenses" element={<Placeholder name="면허" />} />
-        <Route path="/equipment" element={<Placeholder name="장비" />} />
-        <Route path="/photos" element={<Placeholder name="사진대지" />} />
-        <Route path="/invoices" element={<Placeholder name="청구/세금계산서" />} />
-        <Route path="/quotations" element={<Placeholder name="견적" />} />
-        <Route path="/training" element={<Placeholder name="교육/자격" />} />
-        <Route path="/awards" element={<Placeholder name="상훈" />} />
-        <Route path="/alerts" element={<Placeholder name="알림 대시보드" />} />
+        {/* 다른 페이지는 파일 생성 후 아래처럼 라우트 추가하세요.
+            <Route path="/projects" element={<ProjectsPage />} />
+        */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
+    </BrowserRouter>
   );
-}
+};
+
+export default App;

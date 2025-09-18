@@ -1,0 +1,25 @@
+# Node
+node_modules/
+dist/
+build/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+
+# Vite/React
+frontend/client/.vite/
+frontend/client/.cache/
+
+# Local env
+frontend/client/.env.local
+
+# DB/Artifacts
+backend/app/db/*.db
+backend/app/db/*.sqlite
+*.sqlite
+.DS_Store

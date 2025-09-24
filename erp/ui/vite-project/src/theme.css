@@ -1,0 +1,145 @@
+:root{
+  --bg:#ffffff; --fg:#0f172a; --muted:#64748b;
+  --head-bg:#f5f6f8; --head-fg:#111827; --row-hover:#f9fafb;
+  --border:#e5e7eb; --btn-bg:#ffffff; --btn-fg:#111827; --btn-border:#d1d5db;
+  --chip-bg:#f1f5f9; --chip-fg:#0f172a;
+}
+:root[data-theme="dark"]{
+  --bg:#0b0f17; --fg:#e5e7eb; --muted:#a8b0bc;
+  --head-bg:#121826; --head-fg:#e5e7eb; --row-hover:#0f1522;
+  --border:#1f2937; --btn-bg:#121826; --btn-fg:#e5e7eb; --btn-border:#2a3446;
+  --chip-bg:#1b2233; --chip-fg:#e5e7eb;
+}
+html,body,#root{height:100%;}
+body{margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,sans-serif;}
+
+.header{
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:12px;
+  height:56px; padding:0 16px; background:var(--bg); border-bottom:1px solid var(--border);
+}
+.brand{font-weight:800; letter-spacing:.5px;}
+.brand-link{color:var(--fg); text-decoration:none;}
+.navs{display:flex; gap:8px; margin-left:16px;}
+.nav{padding:6px 10px; border-radius:8px; text-decoration:none; color:var(--fg); border:1px solid transparent;}
+.nav:hover{background:var(--row-hover);}
+.nav-active{border:1px solid var(--btn-border); background:var(--head-bg); color:var(--head-fg);}
+.spacer{flex:1;}
+.chip{background:var(--chip-bg); color:var(--chip-fg); border:1px solid var(--border); padding:2px 8px; border-radius:999px; font-size:12px;}
+.btn,.input,.select{border:1px solid var(--btn-border); background:var(--btn-bg); color:var(--btn-fg); padding:8px 10px; border-radius:8px;}
+.btn{cursor:pointer;} .btn:active{transform:translateY(1px);}
+
+.page{height:calc(100vh - 56px); display:flex; flex-direction:column; gap:12px; padding:16px; overflow:hidden;}
+.toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.table{width:100%; border-collapse:separate; border-spacing:0;}
+.th,.td{padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap;}
+.th-head{position:sticky; top:0; background:var(--head-bg); color:var(--head-fg); border-bottom:1px solid var(--border); z-index:5;}
+.tr:hover .td{background:var(--row-hover);}
+
+/* 정렬/폭 */
+.ta-l{text-align:left;} .ta-c{text-align:center;} .ta-r{text-align:right;}
+.col-check{width:40px;}
+.col-xxs{width:72px;}      /* 상태 */
+.col-xs{width:90px;}       /* 사번/성명 등 */
+.col-sm{width:110px;}      /* 날짜/연락처 */
+.col-md{width:128px;}
+.col-lg{width:16%;}
+/* 상세(3:7) */
+.detail-wrap{display:grid; grid-template-rows:3fr 7fr; height:100%; gap:12px;}
+.panel{border:1px solid var(--border); border-radius:12px; padding:12px; background:var(--bg);}
+.tabs{display:flex; gap:8px; border-bottom:1px solid var(--border); margin-bottom:8px; flex-wrap:wrap;}
+.tab{padding:8px 10px; border:1px solid var(--border); border-bottom:none; border-radius:12px 12px 0 0; background:var(--head-bg); color:var(--head-fg);}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.muted{color:var(--muted); font-size:12px;}
+
+:root{
+  --retired-bg:#FBEAEA;      --retired-fg:#7A1C1C;
+  --retireexp-bg:#FFF1E6;    --retireexp-fg:#7A4A16;
+}
+[data-theme="dark"]{
+  --retired-bg:#3B2222;      --retired-fg:#F3B7B7;
+  --retireexp-bg:#3A2D22;    --retireexp-fg:#F1C89D;
+}
+.tr.status-retired   { background: var(--retired-bg) !important; color: var(--retired-fg) !important; }
+.tr.status-retireexp { background: var(--retireexp-bg) !important; color: var(--retireexp-fg) !important; }
+
+
+:root{ --header-h:56px; }
+
+.content-scroll{
+  height:calc(100vh - var(--header-h) - 12px);
+  overflow:auto;
+}
+
+/* 퇴직/퇴사예정(저채도 붉은 계열) */
+tr.tr-retired      { background: rgba(244,63,94,0.12); }
+tr.tr-retire-exp   { background: rgba(244,63,94,0.08); }
+
+/* 저장 완료된 경력 행은 박스 제거 */
+.career-row.saved{
+  outline: none !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+
+:root{ --header-h:56px; }
+
+.table-wrap{
+  height: calc(100vh - var(--header-h) - 12px);
+  overflow: auto;
+}
+
+/* thead sticky (배경 지정) */
+thead th{
+  position: sticky;
+  top: 0;
+  background: #f5f5f5;
+  z-index: 1;
+}
+
+/* 퇴직/퇴사예정 표시 (저채도 붉은 계열) */
+tr.tr-retired    { background: rgba(244,63,94,0.12); }
+tr.tr-retire-exp { background: rgba(244,63,94,0.08); }
+/* === ERP Engineers list styles (append) === */
+:root{
+  --bg:#ffffff; --fg:#111111; --surface:#fafafa;
+  --header-bg:#efefef; --border:#dddddd;
+  --row-border:#eeeeee; --row-hover:#f8f8f8;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#101214; --fg:#e7e8ea; --surface:#1b1d21;
+    --header-bg:#202329; --border:#2b2f36;
+    --row-border:#262a31; --row-hover:#1e2127;
+  }
+}
+body{background:var(--bg); color:var(--fg);}
+
+.page{display:flex; flex-direction:column; gap:12px; padding:12px;}
+.page-toolbar{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--header-bg);}
+.page-toolbar .left{flex:1}
+.page-toolbar .right{display:flex; gap:8px; align-items:center;}
+.input,.select,.btn{padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--fg);}
+.btn{cursor:pointer;}
+.btn.primary{font-weight:600}
+
+.table-container{flex:1; min-height:0; border:1px solid var(--border); border-radius:10px; overflow:auto;}
+.table{width:100%; border-collapse:separate; border-spacing:0;}
+.table thead th{position:sticky; top:0; background:var(--header-bg); z-index:1; padding:8px; border-bottom:1px solid var(--border); font-weight:600;}
+.table tbody td{padding:8px; border-bottom:1px solid var(--row-border);}
+.table tr:hover{background:var(--row-hover);}
+.ta-c{text-align:center;}
+
+.tr.row-retired{color:#8a2b2b;}        /* 저채도 레드 계열 */
+.tr.row-retire-exp{color:#7a5a1a;}     /* 저채도 브라운 계열 */
+export type Theme = "light" | "dark";
+
+export function setTheme(t: Theme) {
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem("theme", t);
+}
+
+export function getTheme(): Theme {
+  return (localStorage.getItem("theme") as Theme | null) ?? "dark";
+}

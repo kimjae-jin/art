@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Dev (API + UI)",
+      "configurations": ["Python: FastAPI", "Vite Dev"]
+    }
+  ],
+  "configurations": [
+    {
+      "name": "Python: FastAPI",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/.venv/bin/uvicorn",
+      "args": ["app.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Vite Dev",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "cd ui/vite-project && npm run dev"
+    }
+  ]
+}

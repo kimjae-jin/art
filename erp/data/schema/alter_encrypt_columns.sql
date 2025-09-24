@@ -1,0 +1,5 @@
+ALTER TABLE engineers
+  ADD COLUMN IF NOT EXISTS name_enc BYTEA,
+  ADD COLUMN IF NOT EXISTS employee_no_enc BYTEA,
+  ADD COLUMN IF NOT EXISTS name_hash BYTEA,
+  ADD COLUMN IF NOT EXISTS employee_no_hash BYTEA;

@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: run (uvicorn)",
+      "type": "shell",
+      "command": "cd backend && . .venv/bin/activate || true; uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+      "problemMatcher": []
+    },
+    {
+      "label": "ui: dev (vite)",
+      "type": "shell",
+      "command": "cd ui/vite-project && npm run dev",
+      "problemMatcher": []
+    }
+  ]
+}

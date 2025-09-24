@@ -1,3 +1,4 @@
+@import "./styles/toolbar-overrides.css";
 /* 붙여넣기한 CSS — header, toolbar, table, chip 스타일(라이트/다크 토큰) */
 :root{
   --bg:#0b0f14; --fg:#e5e7eb; --header-bg:#0d131a; --header-fg:#e5e7eb; --border:#1f2937;

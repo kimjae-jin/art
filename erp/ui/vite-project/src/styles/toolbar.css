@@ -1,0 +1,23 @@
+.toolbar{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:8px; margin-bottom:12px;
+}
+.toolbar .left, .toolbar .right{ display:flex; align-items:center; gap:8px; }
+
+.toolbar input[type="text"], .toolbar select{
+  background:var(--input-bg); color:var(--input-fg);
+  border:1px solid var(--btn-border); border-radius:6px;
+  padding:6px 8px; font-size:14px; outline:none;
+}
+.toolbar .btn{
+  background:var(--btn-bg); color:var(--btn-fg);
+  border:1px solid var(--btn-border); border-radius:6px;
+  padding:6px 12px; font-weight:600; cursor:pointer;
+}
+.toolbar .btn:hover{ opacity:.92; }
+.toolbar .btn:active{ transform:translateY(1px); }
+
+.toolbar .btn.muted{
+  background:var(--btn-muted-bg); color:var(--btn-muted-fg);
+  border-color:var(--btn-muted-border);
+}

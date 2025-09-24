@@ -1,0 +1,54 @@
+/* ===== Toolbar 색상만 덮어쓰기: 레이아웃/정렬 건드리지 않음 ===== */
+
+/* 라이트 모드(중성 톤) */
+:root {
+  --input-bg:#f6f7f9;
+  --input-fg:#0e1726;
+  --btn-bg:#eef0f3;
+  --btn-fg:#0e1726;
+  --btn-border:#d6d9de;
+
+  /* 신규등록(저채도) */
+  --btn-muted-bg:#e6e8ec;
+  --btn-muted-fg:#0e1726;
+  --btn-muted-border:#cfd3d9;
+}
+
+/* 다크 모드(중성 톤) */
+[data-theme="dark"], .dark {
+  --input-bg:#121825;
+  --input-fg:#e7eaf0;
+  --btn-bg:#1b2434;
+  --btn-fg:#e7eaf0;
+  --btn-border:#2a354a;
+
+  /* 신규등록(저채도) */
+  --btn-muted-bg:#273149;
+  --btn-muted-fg:#e7eaf0;
+  --btn-muted-border:#344264;
+}
+
+/* 공통 위에 덮어쓰기 - 정렬/구조 그대로 유지 */
+.toolbar input[type="text"],
+.toolbar select{
+  background:var(--input-bg);
+  color:var(--input-fg);
+  border:1px solid var(--btn-border);
+}
+
+.toolbar .btn{
+  background:var(--btn-bg);
+  color:var(--btn-fg);
+  border:1px solid var(--btn-border);
+}
+
+/* 오른쪽 그룹의 '마지막 버튼(=신규등록)'을 자동 저채도로 */
+.toolbar .right .btn:last-child{
+  background:var(--btn-muted-bg);
+  color:var(--btn-muted-fg);
+  border-color:var(--btn-muted-border);
+}
+
+/* 살짝만 상호작용 톤 */
+.toolbar .btn:hover{ filter:brightness(1.04); }
+.toolbar .btn:active{ transform:translateY(1px); }

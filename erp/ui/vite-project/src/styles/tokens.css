@@ -1,0 +1,55 @@
+:root{
+  --bg:#ffffff;
+  --fg:#0f172a;
+  --border:#e5e7eb;
+
+  --input-bg:#f8fafc;
+  --input-fg:#0f172a;
+
+  --btn-bg:#f3f4f6;
+  --btn-fg:#0f172a;
+  --btn-border:#d1d5db;
+
+  /* 채도 낮춘 버튼(신규등록 등) */
+  --btn-muted-bg:#e5e7eb;
+  --btn-muted-fg:#111827;
+  --btn-muted-border:#cbd5e1;
+}
+
+/* 다크모드(프로젝트에서 data-theme="dark" 또는 body.dark 사용해도 OK) */
+[data-theme="dark"], .dark {
+  --bg:#0b1220;
+  --fg:#e5e7eb;
+  --border:#263042;
+
+  --input-bg:#111827;
+  --input-fg:#e5e7eb;
+
+  --btn-bg:#1f2937;
+  --btn-fg:#e5e7eb;
+  --btn-border:#374151;
+
+  --btn-muted-bg:#374151;     /* 채도 낮춘 중성톤 */
+  --btn-muted-fg:#e5e7eb;
+  --btn-muted-border:#4b5563;
+}
+
+/* 시스템 다크 기본 대응(명시 테마 없을 때) */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220;
+    --fg:#e5e7eb;
+    --border:#263042;
+
+    --input-bg:#111827;
+    --input-fg:#e5e7eb;
+
+    --btn-bg:#1f2937;
+    --btn-fg:#e5e7eb;
+    --btn-border:#374151;
+
+    --btn-muted-bg:#374151;
+    --btn-muted-fg:#e5e7eb;
+    --btn-muted-border:#4b5563;
+  }
+}

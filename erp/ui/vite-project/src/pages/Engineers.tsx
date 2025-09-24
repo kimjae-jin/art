@@ -1,212 +1,289 @@
-import React from "react";
-import * as XLSX from "xlsx"; // npm i xlsx
-import { apiGet, apiPost } from "../lib/api"; // 기존 프로젝트의 lib/api 사용
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-type Engineer = {
-  id: number;
-  employee_no?: string | null;
-  name?: string | null;
-  status?: string | null;
-  joined_at?: string | null;
-  retired_at?: string | null;
-  // 확장 필드(없으면 '-' 표기)
-  birth?: string | null;
-  address?: string | null;
-  phone?: string | null;
-  dept?: string | null;
-  resign_expected_at?: string | null;
-  note?: string | null;
-};
+/** API 유틸 (기존 프로젝트의 lib/api 대체 없이 최소 사용) */
+async function apiGet<T=any>(url: string): Promise<T> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`GET ${url} => ${r.status}`);
+  return r.json();
+}
+async function apiPost<T=any>(url: string, body: any): Promise<T> {
+  const r = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`POST ${url} => ${r.status}`);
+  return r.json();
+}
 
-const StatusChip = ({status}:{status?:string|null})=>{
-  const s = (status||"").trim();
+/** CSV 확실 다운로드(크로스도메인 안전) */
+async function exportCsv() {
+  try {
+    const url = "http://127.0.0.1:8000/engineers/export-csv";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const cd = res.headers.get("content-disposition") || "";
+    const m = cd.match(/filename\s*=\s*"?([^"]+)"?/i);
+    const filename = (m?.[1] ?? "engineers.csv").trim();
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  } catch (e) {
+    console.error(e);
+    // 최후 수단
+    window.open("http://127.0.0.1:8000/engineers/export-csv", "_blank");
+  }
+}
+
+/** CSV/XLSX 불러오기 → /engineers/import-csv 업서트 */
+async function importRowsFromFile(file: File) {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext === "csv") {
+    const text = await file.text();
+    // 매우 단순 CSV 파서(쉼표 포함 케이스는 실제 운영 시 PapaParse 권장)
+    const lines = text.replace(/\r\n/g, "\n").split("\n").filter(Boolean);
+    const header = (lines.shift() || "").split(",");
+    const rows = lines.map(line=>{
+      const cols = line.split(",");
+      const obj: any = {};
+      header.forEach((h,i)=> obj[h.trim()] = (cols[i] ?? "").trim());
+      return obj;
+    });
+    return rows;
+  } else if (ext === "xlsx" || ext === "xls") {
+    const XLSX = await import("xlsx");
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval:"" }) as any[];
+    return rows;
+  } else {
+    throw new Error("지원하지 않는 파일 형식");
+  }
+}
+
+/** 상태 칩(색상은 기존 팔레트 유지) */
+function StatusChip({ value }: { value: string | null }) {
+  const v = (value || "").trim();
   const style: React.CSSProperties = {
-    padding:"2px 6px", borderRadius:6, fontSize:12, fontWeight:600,
-    background:"#334155", color:"#e5e7eb", border:"1px solid #475569"
+    display:"inline-block", padding:"2px 8px", borderRadius:12, fontSize:12,
+    border:"1px solid var(--border, #374151)"
   };
-  if (s==="퇴직") style.background = "#7f1d1d"; // 저채도 레드
-  else if (s==="퇴사예정") style.background = "#78350f"; // 브라운
-  else if (s==="재직") style.background = "#14532d"; // 그린
-  return <span style={style}>{s||"-"}</span>;
+  if (v === "퇴직") style.background = "rgba(220,38,38,.12)";   // 붉은계열 낮은 채도
+  else if (v === "퇴사예정") style.background = "rgba(234,179,8,.12)";
+  else style.background = "rgba(16,185,129,.12)"; // 재직(저채도 녹)
+  return <span style={style}>{v || "—"}</span>;
+}
+
+type Row = {
+  id:number; engineer_code:string; employee_no:string; name:string; status:string|null;
+  joined_at:string|null; retired_at:string|null;
+  birth:string|null; address:string|null; phone:string|null; dept:string|null;
+  resign_expected_at:string|null; note:string|null;
 };
 
 export default function Engineers(){
-  const [items, setItems] = React.useState<Engineer[]>([]);
-  const [view, setView] = React.useState<"list"|"card">("list");
-  const [q, setQ] = React.useState("");
+  const nav = useNavigate();
+  const [items, setItems] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<""|"재직"|"퇴사예정"|"퇴직">("");
+  const [view, setView] = useState<"list"|"card">("list");
+  const [selected, setSelected] = useState<Record<number, boolean>>({});
 
-  const [checked, setChecked] = React.useState<Record<number, boolean>>({});
-  const allChecked = items.length>0 && items.every(it=>checked[it.id]);
-
-  const load = async()=>{
-    const res = await apiGet("/engineers?limit=5000");
-    setItems(res.items || []);
-    setChecked({});
-  };
-
-  React.useEffect(()=>{ load(); },[]);
-
-  const toggleAll = ()=>{
-    if (allChecked) setChecked({});
-    else {
-      const m: Record<number, boolean> = {};
-      items.forEach(it=>m[it.id]=true);
-      setChecked(m);
+  async function load(){
+    setLoading(true);
+    try{
+      const data = await apiGet<{items:Row[]}>("http://127.0.0.1:8000/engineers?limit=5000");
+      setItems(data.items || []);
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+  useEffect(()=>{ load(); },[]);
 
-  const onBulkDelete = async()=>{
-    const ids = items.filter(it=>checked[it.id]).map(it=>it.id);
-    if (!ids.length) return alert("선택된 항목이 없습니다.");
+  const filtered = useMemo(()=>{
+    const keyword = q.trim();
+    return items.filter(r=>{
+      if (statusFilter && (r.status||"") !== statusFilter) return false;
+      if (!keyword) return true;
+      const hay = [r.employee_no, r.name, r.dept, r.phone, r.address, r.note].join(" ").toLowerCase();
+      return hay.includes(keyword.toLowerCase());
+    });
+  },[items,q,statusFilter]);
+
+  function toggleAll(checked:boolean){
+    const next: Record<number,boolean> = {};
+    if (checked) filtered.forEach(r=> next[r.id]=true);
+    setSelected(next);
+  }
+  function toggleOne(id:number, checked:boolean){
+    setSelected(prev=> ({...prev, [id]:checked}));
+  }
+  async function onBulkDelete(){
+    const ids = Object.entries(selected).filter(([,_v])=>_v).map(([k])=>Number(k));
+    if (ids.length===0) return alert("선택된 항목이 없습니다.");
     if (!confirm(`선택 ${ids.length}건을 삭제할까요?`)) return;
-    await apiPost("/engineers/bulk-delete", {ids});
+    await apiPost("http://127.0.0.1:8000/engineers/bulk-delete", { ids });
     await load();
-  };
+    setSelected({});
+  }
 
-  const onExportCSV = ()=>{
-    const header = ["상태","사번","성명","입사일","퇴사일","생년월일","주소","연락처","부서","퇴사예정일","비고"];
-    const rows = items.map(it=>[
-      it.status||"", it.employee_no||"", it.name||"", it.joined_at||"", it.retired_at||"",
-      it.birth||"", it.address||"", it.phone||"", it.dept||"", it.resign_expected_at||"", (it.note||"")
-    ]);
-    const csv = [header, ...rows].map(r=>r.map(v=>`"${(v??"").toString().replace(/"/g,'""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "engineers.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+  async function onImportClick(){
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = ".csv,.xlsx,.xls";
+    inp.onchange = async () => {
+      const f = inp.files?.[0]; if(!f) return;
+      try{
+        const rows = await importRowsFromFile(f);
+        // 업서트: 백엔드가 사번(employee_no) 기준 처리
+        const shaped = rows.map((r:any)=>({
+          employee_no: r.employee_no ?? r["사번"] ?? "",
+          name: r.name ?? r["성명"] ?? "",
+          status: r.status ?? r["상태"] ?? "",
+          joined_at: r.joined_at ?? r["입사일"] ?? "",
+          retired_at: r.retired_at ?? r["퇴사일"] ?? ""
+        }));
+        const res = await apiPost("http://127.0.0.1:8000/engineers/import-csv", { rows: shaped });
+        alert(`저장 완료: ${res.saved ?? 0}건`);
+        await load();
+      }catch(e:any){
+        console.error(e);
+        alert(e?.message || "불러오기 실패");
+      }
+    };
+    inp.click();
+  }
 
-  const onImportFile = async(e: React.ChangeEvent<HTMLInputElement>)=>{
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const name = f.name.toLowerCase();
-    let rows: any[] = [];
-
-    if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
-      const data = await f.arrayBuffer();
-      const wb = XLSX.read(data, {type:"array"});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(ws); // 1행 헤더 기준 객체 배열
-    } else if (name.endsWith(".csv")) {
-      const txt = await f.text();
-      const [headerLine, ...lines] = txt.split(/\r?\n/).filter(Boolean);
-      const headers = headerLine.split(",").map(s=>s.replace(/^"|"$/g,"").trim());
-      rows = lines.map(line=>{
-        const cells = line.split(",").map(s=>s.replace(/^"|"$/g,"").trim());
-        const o:any = {};
-        headers.forEach((h,i)=>o[h]=cells[i]??"");
-        return o;
-      });
-    } else {
-      alert("CSV 또는 XLSX 파일만 지원합니다.");
-      return;
-    }
-
-    // 서버에 업서트
-    const res = await apiPost("/engineers/import-csv", {rows});
-    alert(`불러오기 완료: ${res.saved||0}건`);
-    e.target.value = "";
-    await load();
-  };
-
-  const filtered = items.filter(it=>{
-    const key = (it.employee_no||"") + " " + (it.name||"") + " " + (it.dept||"") + " " + (it.address||"") + " " + (it.phone||"");
-    return key.toLowerCase().includes(q.toLowerCase());
-  });
+  // 생년월일 표시는 YYYY-MM-DD -> YYYY-MM-DD(앞 10자리) 또는 주민번호에서 앞6자리만 등 정책에 맞게
+  function fmtBirth(s:string|null){
+    if(!s) return "";
+    return s.slice(0,10);
+  }
 
   return (
     <div style={{display:"grid", gap:12}}>
-      {/* 툴바 */}
-      <div style={{display:"flex", gap:8, alignItems:"center"}}>
-        <input
-          value={q}
-          onChange={e=>setQ(e.target.value)}
-          placeholder="검색: 사번/성명/부서/연락처/주소"
-          style={{flex:"1 1 320px", padding:"8px 10px", border:"1px solid var(--border,#475569)", borderRadius:8, background:"transparent", color:"var(--fg,#e5e7eb)"}}
-        />
-        <div style={{display:"flex", gap:6}}>
-          <button onClick={()=>setView("list")} style={{padding:"6px 10px"}}>목록</button>
-          <button onClick={()=>setView("card")} style={{padding:"6px 10px"}}>카드</button>
-          <button onClick={load} style={{padding:"6px 10px"}}>새로고침</button>
-          <label style={{display:"inline-flex", alignItems:"center", gap:6, padding:"6px 10px", border:"1px solid var(--border,#475569)", borderRadius:8, cursor:"pointer"}}>
-            <input type="file" accept=".csv, .xlsx, .xls" onChange={onImportFile} style={{display:"none"}}/>
-            불러오기(CSV/XLSX)
-          </label>
-          <button onClick={onExportCSV} style={{padding:"6px 10px"}}>CSV 내보내기</button>
-          <button onClick={onBulkDelete} style={{padding:"6px 10px"}}>선택삭제</button>
-          <button onClick={()=>alert("신규등록: 상세 페이지 폼 연결 예정")} style={{padding:"6px 10px"}}>신규 등록</button>
+      {/* 툴바 : 좌(검색/상태/선택삭제/내보내기/불러오기) - 우(목록/카드/신규) 한 줄*/}
+      <div style={{display:"flex", gap:8, alignItems:"center", justifyContent:"space-between", flexWrap:"wrap"}}>
+        <div style={{display:"flex", gap:8, alignItems:"center", flex:1, minWidth:360}}>
+          <input
+            placeholder="찾기"
+            value={q}
+            onChange={e=>setQ(e.target.value)}
+            style={{flex:1, minWidth:180, padding:"8px 10px", borderRadius:8, border:"1px solid var(--border,#374151)"}}
+          />
+          <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value as any)}
+                  title="상태"
+                  style={{padding:"8px 10px", borderRadius:8, border:"1px solid var(--border,#374151)"}}>
+            <option value="">상태: 전체</option>
+            <option value="재직">재직</option>
+            <option value="퇴사예정">퇴사예정</option>
+            <option value="퇴직">퇴직</option>
+          </select>
+          <button onClick={onBulkDelete} style={{padding:"8px 12px", borderRadius:8, border:"1px solid var(--border,#374151)", background:"transparent"}}>
+            선택삭제
+          </button>
+          <button onClick={exportCsv} style={{padding:"8px 12px", borderRadius:8, border:"1px solid var(--border,#374151)", background:"transparent"}}>
+            내보내기
+          </button>
+          <button onClick={onImportClick} style={{padding:"8px 12px", borderRadius:8, border:"1px solid var(--border,#374151)", background:"transparent"}}>
+            불러오기
+          </button>
+        </div>
+        <div style={{display:"flex", gap:8, alignItems:"center"}}>
+          <button onClick={()=>setView("list")}
+                  style={{padding:"8px 12px", borderRadius:8, border:"1px solid var(--border,#374151)", background: view==="list"?"var(--btn-act,#1f2937)":"transparent"}}>
+            목록
+          </button>
+          <button onClick={()=>setView("card")}
+                  style={{padding:"8px 12px", borderRadius:8, border:"1px solid var(--border,#374151)", background: view==="card"?"var(--btn-act,#1f2937)":"transparent"}}>
+            카드
+          </button>
+          <button onClick={()=>nav("/engineers/new")}
+                  style={{padding:"8px 12px", borderRadius:8, border:"1px solid var(--border,#374151)", background:"var(--btn-muted,#2b2f36)"}}>
+            신규등록
+          </button>
         </div>
       </div>
 
-      {/* 리스트/카드 */}
+      {/* 목록 / 카드 */}
       {view==="list" ? (
-        <div style={{border:"1px solid var(--border,#475569)", borderRadius:8, overflow:"hidden"}}>
+        <div style={{overflow: "auto"}}>
           <table style={{width:"100%", borderCollapse:"collapse"}}>
-            <thead style={{background:"var(--thead,#111827)"}}>
-              <tr>
-                <th style={{padding:"8px", borderBottom:"1px solid var(--border,#475569)"}}>
-                  <input type="checkbox" checked={allChecked} onChange={toggleAll}/>
-                </th>
-                <th style={{padding:"8px"}}>상태</th>
-                <th style={{padding:"8px"}}>사번</th>
-                <th style={{padding:"8px"}}>성명</th>
-                <th style={{padding:"8px"}}>생년월일</th>
-                <th style={{padding:"8px"}}>입사일</th>
-                <th style={{padding:"8px"}}>주소</th>
-                <th style={{padding:"8px"}}>연락처</th>
-                <th style={{padding:"8px"}}>부서</th>
-                <th style={{padding:"8px"}}>퇴사예정일</th>
-                <th style={{padding:"8px"}}>퇴사일</th>
-                <th style={{padding:"8px"}}>비고</th>
+            <thead>
+              <tr style={{borderBottom:"1px solid var(--border,#374151)"}}>
+                <th style={{textAlign:"left", padding:"8px"}}><input type="checkbox"
+                  onChange={e=>toggleAll(e.target.checked)}
+                  checked={filtered.length>0 && filtered.every(r=>selected[r.id])}
+                  indeterminate={undefined}
+                /></th>
+                <th style={{textAlign:"left", padding:"8px"}}>상태</th>
+                <th style={{textAlign:"left", padding:"8px"}}>사번</th>
+                <th style={{textAlign:"left", padding:"8px"}}>성명</th>
+                <th style={{textAlign:"left", padding:"8px"}}>생년월일</th>
+                <th style={{textAlign:"left", padding:"8px"}}>입사일</th>
+                <th style={{textAlign:"left", padding:"8px"}}>주소</th>
+                <th style={{textAlign:"left", padding:"8px"}}>연락처</th>
+                <th style={{textAlign:"left", padding:"8px"}}>부서</th>
+                <th style={{textAlign:"left", padding:"8px"}}>퇴사예정일</th>
+                <th style={{textAlign:"left", padding:"8px"}}>퇴사일</th>
+                <th style={{textAlign:"left", padding:"8px"}}>비고</th>
               </tr>
             </thead>
             <tbody>
-            {filtered.length===0 ? (
-              <tr><td colSpan={12} style={{textAlign:"center", padding:"24px"}}>데이터가 없습니다.</td></tr>
-            ) : filtered.map(it=>(
-              <tr key={it.id} onDoubleClick={()=>alert(`상세 진입(미연결): id=${it.id}`)}
-                style={{borderTop:"1px solid var(--border,#475569)", cursor:"pointer"}}>
-                <td style={{padding:"8px"}}>
-                  <input type="checkbox" checked={!!checked[it.id]} onChange={e=>setChecked(prev=>({...prev,[it.id]:e.target.checked}))}/>
-                </td>
-                <td style={{padding:"8px"}}><StatusChip status={it.status}/></td>
-                <td style={{padding:"8px"}}>{it.employee_no || "-"}</td>
-                <td style={{padding:"8px"}}>{it.name || "-"}</td>
-                <td style={{padding:"8px"}}>{it.birth || "-"}</td>
-                <td style={{padding:"8px"}}>{it.joined_at || "-"}</td>
-                <td style={{padding:"8px"}}>{it.address || "-"}</td>
-                <td style={{padding:"8px"}}>{it.phone || "-"}</td>
-                <td style={{padding:"8px"}}>{it.dept || "-"}</td>
-                <td style={{padding:"8px"}}>{it.resign_expected_at || "-"}</td>
-                <td style={{padding:"8px"}}>{it.retired_at || "-"}</td>
-                <td style={{padding:"8px"}}>{it.note || "-"}</td>
-              </tr>
-            ))}
+              {loading ? (
+                <tr><td colSpan={12} style={{padding:16}}>로딩중…</td></tr>
+              ) : filtered.length===0 ? (
+                <tr><td colSpan={12} style={{padding:16}}>데이터가 없습니다.</td></tr>
+              ) : filtered.map(r=>(
+                <tr key={r.id}
+                    onDoubleClick={()=>nav(`/engineers/${r.id}`)}
+                    style={{borderBottom:"1px solid var(--border,#30363d)", cursor:"default"}}>
+                  <td style={{padding:"6px 8px"}}>
+                    <input type="checkbox" checked={!!selected[r.id]} onChange={e=>toggleOne(r.id, e.target.checked)}/>
+                  </td>
+                  <td style={{padding:"6px 8px"}}><StatusChip value={r.status} /></td>
+                  <td style={{padding:"6px 8px"}}>{r.employee_no}</td>
+                  <td style={{padding:"6px 8px"}}>{r.name}</td>
+                  <td style={{padding:"6px 8px"}}>{fmtBirth(r.birth)}</td>
+                  <td style={{padding:"6px 8px"}}>{r.joined_at?.slice(0,10) || ""}</td>
+                  <td style={{padding:"6px 8px"}}>{r.address || ""}</td>
+                  <td style={{padding:"6px 8px"}}>{r.phone || ""}</td>
+                  <td style={{padding:"6px 8px"}}>{r.dept || ""}</td>
+                  <td style={{padding:"6px 8px"}}>{r.resign_expected_at?.slice(0,10) || ""}</td>
+                  <td style={{padding:"6px 8px"}}>{r.retired_at?.slice(0,10) || ""}</td>
+                  <td style={{padding:"6px 8px"}}>{r.note || ""}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:12}}>
-          {filtered.length===0 ? <div className="muted">카드 없음</div> : filtered.map(it=>(
-            <div key={it.id} style={{border:"1px solid var(--border,#475569)", borderRadius:10, padding:12}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap:12}}>
+          {filtered.map(r=>(
+            <div key={r.id} onDoubleClick={()=>nav(`/engineers/${r.id}`)}
+                 style={{border:"1px solid var(--border,#374151)", borderRadius:12, padding:12}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
-                <strong>{it.name || "-"}</strong>
-                <StatusChip status={it.status}/>
+                <div style={{fontWeight:600}}>{r.name} <span style={{opacity:.7}}>({r.employee_no})</span></div>
+                <StatusChip value={r.status} />
               </div>
               <div style={{fontSize:13, lineHeight:1.6}}>
-                <div>사번: {it.employee_no || "-"}</div>
-                <div>입사일: {it.joined_at || "-"}</div>
-                <div>퇴사일: {it.retired_at || "-"}</div>
-                <div>부서: {it.dept || "-"}</div>
-                <div>연락처: {it.phone || "-"}</div>
-                <div>주소: {it.address || "-"}</div>
+                <div>생년월일: {fmtBirth(r.birth) || "—"}</div>
+                <div>입사일: {r.joined_at?.slice(0,10) || "—"}</div>
+                <div>부서: {r.dept || "—"}</div>
+                <div>연락처: {r.phone || "—"}</div>
+                <div>주소: {r.address || "—"}</div>
+                <div>퇴사예정일: {r.resign_expected_at?.slice(0,10) || "—"}</div>
+                <div>퇴사일: {r.retired_at?.slice(0,10) || "—"}</div>
+                <div>비고: {r.note || "—"}</div>
               </div>
-              <div style={{marginTop:8, display:"flex", gap:6}}>
-                <button onClick={()=>alert(`상세 진입(미연결): id=${it.id}`)} style={{padding:"4px 8px"}}>상세</button>
-                <label style={{marginLeft:"auto"}}>
-                  <input type="checkbox" checked={!!checked[it.id]} onChange={e=>setChecked(prev=>({...prev,[it.id]:e.target.checked}))}/>
+              <div style={{marginTop:10}}>
+                <label style={{display:"inline-flex", alignItems:"center", gap:6, cursor:"pointer"}}>
+                  <input type="checkbox" checked={!!selected[r.id]} onChange={e=>toggleOne(r.id, e.target.checked)}/>
+                  선택
                 </label>
               </div>
             </div>

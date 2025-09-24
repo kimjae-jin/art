@@ -63,3 +63,29 @@
 .seg.active{ background:#334155; color:#fff }
 .muted{ opacity:.75 }
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* toolbar tones */
+.tb-input,.tb-select{
+  height: 34px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--border,#3a3f47);
+  background: var(--input-bg, rgba(30,41,59,.35));
+  color: var(--fg,#e5e7eb);
+}
+.tb-input::placeholder{ color: #9aa0a6; }
+
+.tb-btn{
+  height: 34px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid var(--border,#3a3f47);
+  background: var(--btn-bg, rgba(31,41,55,.45));
+  color: var(--fg,#e5e7eb);
+}
+.tb-btn:hover{ background: rgba(31,41,55,.65); }
+.tb-btn.hollow{ background: transparent; }
+.tb-btn.danger{ border-color:#6b2b2b; color:#ffb4b4; }
+.tb-btn.create{ background: rgba(148,163,184,.22); color:#e5e7eb; } /* 채도 낮춘 회색 */
+:root[data-theme="light"] .tb-input,
+:root[data-theme="light"] .tb-select{ background:#f6f7f9; color:#111; border-color:#d9dde3; }
+:root[data-theme="light"] .tb-btn{ background:#f1f3f6; color:#222; border-color:#d9dde3; }
+:root[data-theme="light"] .tb-btn.hollow{ background:transparent; }
+:root[data-theme="light"] .tb-btn.danger{ color:#b71c1c; border-color:#e6bcbc; }
+:root[data-theme="light"] .tb-btn.create{ background:#eceff3; color:#222; } /* 낮은 채도 그레이 */

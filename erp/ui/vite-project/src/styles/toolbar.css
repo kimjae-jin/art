@@ -1,23 +1,121 @@
-.toolbar{
-  display:flex; justify-content:space-between; align-items:center;
-  gap:8px; margin-bottom:12px;
-}
-.toolbar .left, .toolbar .right{ display:flex; align-items:center; gap:8px; }
+/* Toolbar CSS 시작 */
+:root {
+  --tb-gap: 8px;
+  --tb-h: 32px;
+  --tb-radius: 8px;
 
-.toolbar input[type="text"], .toolbar select{
-  background:var(--input-bg); color:var(--input-fg);
-  border:1px solid var(--btn-border); border-radius:6px;
-  padding:6px 8px; font-size:14px; outline:none;
-}
-.toolbar .btn{
-  background:var(--btn-bg); color:var(--btn-fg);
-  border:1px solid var(--btn-border); border-radius:6px;
-  padding:6px 12px; font-weight:600; cursor:pointer;
-}
-.toolbar .btn:hover{ opacity:.92; }
-.toolbar .btn:active{ transform:translateY(1px); }
+  /* Light */
+  --tb-fg:#111827;
+  --tb-bg:#ffffff;
+  --tb-field-bg:#f7f7f9;
+  --tb-field-fg:#111827;
+  --tb-field-bd:#d0d5dd;
+  --tb-field-ph:#6b7280;
 
-.toolbar .btn.muted{
-  background:var(--btn-muted-bg); color:var(--btn-muted-fg);
-  border-color:var(--btn-muted-border);
+  --tb-btn-bg:#f4f5f7;
+  --tb-btn-bd:#d1d5db;
+  --tb-btn-fg:#111827;
+  --tb-btn-hover-bg:#ebedf0;
+
+  --tb-create-bg:#e7e9ee;
+  --tb-create-bd:#cfd6df;
+  --tb-create-fg:#111827;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tb-fg:#e5e7eb;
+    --tb-bg:#0b0f14;
+    --tb-field-bg:#141a22;
+    --tb-field-fg:#e5e7eb;
+    --tb-field-bd:#2b3542;
+    --tb-field-ph:#9aa4b2;
+    --tb-btn-bg:#1a212b;
+    --tb-btn-bd:#2b3542;
+    --tb-btn-fg:#e5e7eb;
+    --tb-btn-hover-bg:#202837;
+    --tb-create-bg:#212a34;
+    --tb-create-bd:#2b3542;
+    --tb-create-fg:#e5e7eb;
+  }
+}
+
+/* Toolbar 레이아웃 */
+.tb { display:flex; align-items:center; justify-content:space-between; gap:var(--tb-gap); width:100%; }
+.tb .left, .tb .right { display:flex; align-items:center; gap:var(--tb-gap); }
+
+.tb input[type="text"],
+.tb input[type="search"],
+.tb select {
+  height:var(--tb-h);
+  border-radius:var(--tb-radius);
+  background:var(--tb-field-bg);
+  color:var(--tb-field-fg);
+  border:1px solid var(--tb-field-bd);
+  padding:0 10px;
+}
+.tb input::placeholder { color:var(--tb-field-ph); }
+
+.tb .btn, .tb a.btn {
+  height:var(--tb-h);
+  border-radius:var(--tb-radius);
+  padding:0 10px;
+  border:1px solid var(--tb-btn-bd);
+  background:var(--tb-btn-bg);
+  color:var(--tb-btn-fg);
+  display:inline-flex; align-items:center; gap:6px;
+  cursor:pointer;
+}
+.tb .btn:hover, .tb a.btn:hover { background:var(--tb-btn-hover-bg); }
+
+.tb .btn.create, .tb a.btn.create {
+  background:var(--tb-create-bg);
+  border-color:var(--tb-create-bd);
+  color:var(--tb-create-fg);
+  font-weight:600;
+}
+
+.tb .btn.icon { width:var(--tb-h); padding:0; justify-content:center; }
+
+/* ===== High Priority Overrides (툴바 톤 강제 정렬) ===== */
+:root .tb input[type="text"],
+:root .tb input[type="search"],
+:root .tb select {
+  background: var(--tb-field-bg) !important;
+  color: var(--tb-field-fg) !important;
+  border-color: var(--tb-field-bd) !important;
+}
+.tb input::placeholder { color: var(--tb-field-ph) !important; }
+
+:root .tb .btn, :root .tb a.btn {
+  background: var(--tb-btn-bg) !important;
+  color: var(--tb-btn-fg) !important;
+  border-color: var(--tb-btn-bd) !important;
+}
+:root .tb .btn:hover, :root .tb a.btn:hover {
+  background: var(--tb-btn-hover-bg) !important;
+}
+
+:root .tb .btn.create, :root .tb a.btn.create {
+  background: var(--tb-create-bg) !important;
+  color: var(--tb-create-fg) !important;
+  border-color: var(--tb-create-bd) !important;
+  font-weight: 600;
+}
+
+/* (옵션) data-theme="dark" 를 쓰는 레거시 코드와 공존할 때 */
+body[data-theme="dark"] {
+  --tb-fg:#e5e7eb;
+  --tb-bg:#0b0f14;
+  --tb-field-bg:#141a22;
+  --tb-field-fg:#e5e7eb;
+  --tb-field-bd:#2b3542;
+  --tb-field-ph:#9aa4b2;
+  --tb-btn-bg:#1a212b;
+  --tb-btn-bd:#2b3542;
+  --tb-btn-fg:#e5e7eb;
+  --tb-btn-hover-bg:#202837;
+  --tb-create-bg:#212a34;
+  --tb-create-bd:#2b3542;
+  --tb-create-fg:#e5e7eb;
 }

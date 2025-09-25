@@ -1,66 +1,35 @@
-/* ===== Toolbar minimal tones (both light/dark) ===== */
-
+/* ===== Toolbar minimal tones (light/dark 모두 저채도, 배경 과색 금지) ===== */
 :root{
-  --tb-fg:#1f2937;            /* 글자 */
-  --tb-bg:transparent;        /* 배경은 투명 유지 */
-  --tb-bd:#c7cdd6;            /* 경계선 - 저채도 그레이 */
-  --tb-bg-hover:#f4f6f9;      /* 살짝만 밝아지는 hover */
-  --tb-create-bg:#eceff3;     /* 신규등록 버튼 - 낮은 채도 그레이 */
-  --tb-create-fg:#111827;
+  --tb-fg:#1f2937; --tb-bg:transparent; --tb-bd:#c7cdd6;
+  --tb-bg-hover:#f4f6f9; --tb-create-bg:#eceff3; --tb-create-fg:#111827;
 }
-
 :root[data-theme="dark"]{
-  --tb-fg:#e5e7eb;
-  --tb-bg:transparent;
-  --tb-bd:#3b4252;
-  --tb-bg-hover:#11141a;
-  --tb-create-bg:#2a2f39;     /* 다크에서도 과채도 금지 */
-  --tb-create-fg:#e5e7eb;
+  --tb-fg:#e5e7eb; --tb-bg:transparent; --tb-bd:#3b4252;
+  --tb-bg-hover:#11141a; --tb-create-bg:#2a2f39; --tb-create-fg:#e5e7eb;
 }
 
-/* 래퍼 */
-.tb-wrap{
-  display:flex; align-items:center; gap:12px;
-  padding:8px 10px; border-bottom:1px solid var(--tb-bd);
-}
+.tb-wrap{ display:flex; align-items:center; gap:12px; padding:8px 10px; border-bottom:1px solid var(--tb-bd); }
 .tb-left{ display:flex; align-items:center; gap:8px; }
 .tb-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
 
-/* 입력류 */
-.tb-input, .tb-select{
-  height:32px; padding:0 10px;
-  background:var(--tb-bg);
-  color:var(--tb-fg);
-  border:1px solid var(--tb-bd);
-  border-radius:8px; outline:none;
+.tb-input,.tb-select{
+  height:32px; padding:0 10px; background:var(--tb-bg); color:var(--tb-fg);
+  border:1px solid var(--tb-bd); border-radius:8px; outline:none;
 }
 .tb-input::placeholder{ opacity:.6; }
 
-/* 일반 버튼 */
 .tb-btn{
-  height:32px; padding:0 10px;
-  background:var(--tb-bg);
-  color:var(--tb-fg);
-  border:1px solid var(--tb-bd);
-  border-radius:8px; cursor:pointer;
+  height:32px; padding:0 10px; background:var(--tb-bg); color:var(--tb-fg);
+  border:1px solid var(--tb-bd); border-radius:8px; cursor:pointer;
   text-decoration:none; display:inline-flex; align-items:center; gap:6px;
 }
 .tb-btn:hover{ background:var(--tb-bg-hover); }
 .tb-btn[disabled]{ opacity:.5; cursor:not-allowed; }
 
-/* 신규등록(저채도) */
-.tb-btn.create{
-  background:var(--tb-create-bg);
-  color:var(--tb-create-fg);
-  border-color:var(--tb-bd);
-}
+.tb-btn.create{ background:var(--tb-create-bg); color:var(--tb-create-fg); border-color:var(--tb-bd); }
 .tb-btn.create:hover{ filter:brightness(0.98); }
 
-/* 목록/카드 토글 */
 .seg{ display:inline-flex; border:1px solid var(--tb-bd); border-radius:8px; overflow:hidden; }
-.seg-btn{
-  height:32px; padding:0 10px; background:transparent; color:var(--tb-fg);
-  border:0; cursor:pointer;
-}
+.seg-btn{ height:32px; padding:0 10px; background:transparent; color:var(--tb-fg); border:0; cursor:pointer; }
 .seg-btn + .seg-btn{ border-left:1px solid var(--tb-bd); }
 .seg-btn.on{ background:var(--tb-bg-hover); font-weight:600; }

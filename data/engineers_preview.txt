@@ -1,0 +1,6 @@
+  engineer_id employee_no name birthdate birthdate_print join_date join_date_print department address mobile_last4 mobile_print retire_expected retire_expected_print retire_date retire_date_print note
+0   ENG_nanNA         NaN  NaN      <NA>                      <NA>                                                                         <NA>                              <NA>                       
+1   ENG_nanNA         NaN  NaN      <NA>                      <NA>                                                                         <NA>                              <NA>                       
+2   ENG_nanNA         NaN  NaN      <NA>                      <NA>                                                                         <NA>                              <NA>                       
+3   ENG_nanNA         NaN  NaN      <NA>                      <NA>                                                                         <NA>                              <NA>                       
+4   ENG_nanNA         NaN  NaN      <NA>                      <NA>                                                                         <NA>                              <NA>                       

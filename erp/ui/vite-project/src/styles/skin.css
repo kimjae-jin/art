@@ -1,0 +1,57 @@
+/* 공통 톤 (눈부심 최소화) */
+:root{
+  --radius: 8px;
+  --border: #dfe3e8;
+  --fg: #222;
+  --muted: #6b7280;
+}
+
+/* 라이트 */
+:root[data-theme="light"]{
+  --page-bg: #ffffff;
+  --header-bg: rgba(255,255,255,0.75);
+  --header-fg: #111;
+  --toolbar-bg: rgba(255,255,255,0.80);
+  --toolbar-fg: #111;
+  --chip-bg: #eef2f6;   /* 아주 옅은 회색 */
+  --chip-fg: #222;
+  --btn-gray-bg: #eceff3;  /* 신규등록 저채도 */
+  --btn-gray-fg: #222;
+}
+
+/* 다크 */
+:root[data-theme="dark"]{
+  --page-bg: #0c1117;
+  --header-bg: rgba(16,22,28,0.70);
+  --header-fg: #e5e7eb;
+  --toolbar-bg: rgba(18,24,31,0.75);
+  --toolbar-fg: #e5e7eb;
+  --chip-bg: #1f2730;
+  --chip-fg: #e5e7eb;
+  --btn-gray-bg: #2a333d; /* 저채도 그레이 */
+  --btn-gray-fg: #e5e7eb;
+}
+
+/* 페이지 바탕 */
+html, body, #root { background: var(--page-bg); color: var(--fg); }
+
+/* 메인헤더 & 운영 툴바(같은 톤) */
+.header, .toolbar {
+  backdrop-filter: saturate(160%) blur(8px);
+  background: var(--header-bg);
+  color: var(--header-fg);
+  border-bottom: 1px solid var(--border);
+}
+
+/* 툴바 내부 컨트롤 */
+.toolbar .control {
+  background: var(--toolbar-bg);
+  color: var(--toolbar-fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* 버튼 (저채도) */
+.tb-btn { border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; }
+.tb-btn.create { background: var(--btn-gray-bg); color: var(--btn-gray-fg); }
+.tb-chip { background: var(--chip-bg); color: var(--chip-fg); border-radius: 999px; padding: 3px 8px; }

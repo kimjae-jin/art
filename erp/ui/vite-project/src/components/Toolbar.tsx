@@ -9,11 +9,11 @@ type Props = {
   onStatus: (v: string) => void;
   onBulkDelete: () => Promise<void>;
   onImport: (file: File) => Promise<void>;
-  exportHref: string;                 // CSV 내보내기 링크
-  view: ViewMode;                     // 목록/카드
+  exportHref: string;
+  view: ViewMode;
   onView: (v: ViewMode) => void;
-  onCreate: () => void;               // 신규등록
-  selectedCount: number;              // 선택 개수 표시
+  onCreate: () => void;
+  selectedCount: number;
 };
 
 export default function Toolbar({
@@ -30,7 +30,6 @@ export default function Toolbar({
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) onImport(f);
-    // 같은 파일 다시 선택해도 change 발생하도록 리셋
     e.target.value = "";
   };
 
@@ -43,7 +42,6 @@ export default function Toolbar({
           value={keyword}
           onChange={(e)=>onKeyword(e.target.value)}
         />
-
         <select
           className="tb-select"
           value={status}
@@ -54,7 +52,6 @@ export default function Toolbar({
           <option value="퇴사예정">퇴사예정</option>
           <option value="퇴사">퇴사</option>
         </select>
-
         <button
           className="tb-btn"
           onClick={onBulkDelete}
@@ -63,34 +60,18 @@ export default function Toolbar({
         >
           선택삭제
         </button>
-
-        <a className="tb-btn"
-           href={exportHref}
-           download>
-          CSV 내보내기
-        </a>
-
-        <label className="tb-btn">
-          불러오기
+        <a className="tb-btn" href={exportHref} download>CSV 내보내기</a>
+        <label className="tb-btn">불러오기
           <input type="file" accept=".csv" onChange={onFile} hidden />
         </label>
       </div>
 
       <div className="tb-right">
         <div className="seg">
-          <button
-            className={`seg-btn ${view==="list"?"on":""}`}
-            onClick={()=>onView("list")}
-          >목록</button>
-          <button
-            className={`seg-btn ${view==="card"?"on":""}`}
-            onClick={()=>onView("card")}
-          >카드</button>
+          <button className={`seg-btn ${view==="list"?"on":""}`} onClick={()=>onView("list")}>목록</button>
+          <button className={`seg-btn ${view==="card"?"on":""}`} onClick={()=>onView("card")}>카드</button>
         </div>
-
-        <button className="tb-btn create" onClick={onCreate}>
-          신규등록
-        </button>
+        <button className="tb-btn create" onClick={onCreate}>신규등록</button>
       </div>
     </div>
   );

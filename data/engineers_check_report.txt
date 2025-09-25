@@ -1,0 +1,11 @@
+SRC_FILE:/Users/geenie./Desktop/Art/engineers.csv
+ROWS:53
+PRESENT:
+MISSING_REQ:name,employee_no,birthdate
+MISSING_RECOMMENDED:mobile,email,department,position,grade,address,join_date
+PREVIEW:
+{'engineer_id': 'ENG_ENG000001', 'employee_no': None, 'name': None, 'birthdate': None, 'join_date': None, 'retire_date': None, 'grade': None, 'department': None, 'position': None, 'mobile': None, 'email': None, 'address': None, 'license_no': None, 'note': None}
+{'engineer_id': 'ENG_ENG000002', 'employee_no': None, 'name': None, 'birthdate': None, 'join_date': None, 'retire_date': None, 'grade': None, 'department': None, 'position': None, 'mobile': None, 'email': None, 'address': None, 'license_no': None, 'note': None}
+{'engineer_id': 'ENG_ENG000003', 'employee_no': None, 'name': None, 'birthdate': None, 'join_date': None, 'retire_date': None, 'grade': None, 'department': None, 'position': None, 'mobile': None, 'email': None, 'address': None, 'license_no': None, 'note': None}
+{'engineer_id': 'ENG_ENG000004', 'employee_no': None, 'name': None, 'birthdate': None, 'join_date': None, 'retire_date': None, 'grade': None, 'department': None, 'position': None, 'mobile': None, 'email': None, 'address': None, 'license_no': None, 'note': None}
+{'engineer_id': 'ENG_ENG000005', 'employee_no': None, 'name': None, 'birthdate': None, 'join_date': None, 'retire_date': None, 'grade': None, 'department': None, 'position': None, 'mobile': None, 'email': None, 'address': None, 'license_no': None, 'note': None}

@@ -1,8 +1,3 @@
-from urllib.parse import quote
-import csv, io
-from fastapi import Response
-from sqlalchemy import text
-from fastapi import APIRouter, Body
 from fastapi import APIRouter, Query, Body
 from sqlalchemy.sql import text
 from app.db import SessionLocal
@@ -81,43 +76,3 @@ def bulk_delete(payload: dict = Body(...)):
         s.execute(sql, {"ids": ids})
         s.commit()
     return {"deleted": len(ids)}
-
-@router.get("/export-csv")
-def export_csv():
-    # 한글 헤더 + UTF-8 BOM
-    header = ["사번","성명","상태","입사일","주소","연락처","부서","퇴사예정일","퇴사일","비고"]
-    sql = text("""
-        SELECT
-          COALESCE(e.employee_no,'')      AS employee_no,
-          COALESCE(e.name,'')             AS name,
-          COALESCE(e.status,'')           AS status,
-          COALESCE(to_char(e.joined_at, 'YYYY-MM-DD'),'')        AS joined_at,
-          COALESCE(e.address,'')          AS address,
-          COALESCE(e.phone,'')            AS phone,
-          COALESCE(e.dept,'')             AS dept,
-          COALESCE(to_char(e.resign_expected_at,'YYYY-MM-DD'),'') AS resign_expected_at,
-          COALESCE(to_char(e.retired_at,'YYYY-MM-DD'),'')         AS retired_at,
-          COALESCE(e.note,'')             AS note
-        FROM engineers e
-        ORDER BY e.id ASC
-    """)
-    with SessionLocal() as s:
-        rows = s.execute(sql).mappings().all()
-
-    buf = io.StringIO()
-    # BOM
-    buf.write("\ufeff")
-    w = csv.writer(buf)
-    w.writerow(header)
-    for r in rows:
-        w.writerow([
-            r["employee_no"], r["name"], r["status"], r["joined_at"],
-            r["address"], r["phone"], r["dept"], r["resign_expected_at"],
-            r["retired_at"], r["note"]
-        ])
-    data = buf.getvalue()
-    resp = Response(content=data, media_type="text/csv; charset=utf-8")
-    # RFC5987 — 한글 파일명 안전
-    filename = "기술인목록.csv"
-    resp.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{quote(filename)}"
-    return resp

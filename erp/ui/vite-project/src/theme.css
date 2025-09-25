@@ -133,13 +133,4 @@ body{background:var(--bg); color:var(--fg);}
 
 .tr.row-retired{color:#8a2b2b;}        /* 저채도 레드 계열 */
 .tr.row-retire-exp{color:#7a5a1a;}     /* 저채도 브라운 계열 */
-export type Theme = "light" | "dark";
 
-export function setTheme(t: Theme) {
-  document.documentElement.setAttribute("data-theme", t);
-  localStorage.setItem("theme", t);
-}
-
-export function getTheme(): Theme {
-  return (localStorage.getItem("theme") as Theme | null) ?? "dark";
-}

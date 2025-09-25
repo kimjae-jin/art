@@ -30,7 +30,7 @@ export default function MainHeader() {
   }, [theme]);
 
   return (
-    <header style={{
+    <header className="header" style={{
       position:"sticky", top:0, zIndex:1000,
       backdropFilter:"saturate(180%) blur(8px)",
       background:"var(--header-bg, rgba(17,24,39,.8))",

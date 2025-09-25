@@ -1,0 +1,54 @@
+/* 기본(라이트) — 아주 옅게, 배경 거의 없음 */
+:root{
+  /* 공통 톤 */
+  --fg:#111827;               /* 글자 */
+  --muted:#6b7280;
+  --brd:#e5e7eb;              /* 경계선 */
+  --header-bg:rgba(255,255,255,0.65); /* 메인헤더 배경(옅음) */
+
+  /* 툴바/표/버튼 톤 */
+  --tb-bg:transparent;        /* ← 툴바 배경 거의 없음 */
+  --th:rgba(248,250,252,0.9); /* 표 헤더 아주 옅은 회색 */
+  --rowbg:#fff;
+  --card:#fff;
+
+  --ibox:#ffffff;             /* 입력 상자 배경-라이트 */
+  --btn:rgba(0,0,0,0.04);     /* 기본 버튼(저채도) */
+  --btn-act:rgba(0,0,0,0.08); /* 활성 */
+  --btn-create:rgba(0,0,0,0.06); /* 신규등록(그레이 톤) */
+  --btn-del:rgba(185,28,28,0.08); /* 삭제(저채도 레드) */
+  --btn-dis:rgba(0,0,0,0.06); /* 비활성 */
+}
+
+/* 다크 — 현재 보시던 느낌 유지(눈부심 없이 저채도) */
+@media (prefers-color-scheme: dark){
+  :root{
+    --fg:#e5e7eb;
+    --muted:#94a3b8;
+    --brd:#475569;
+    --header-bg:rgba(17,24,39,0.7);
+
+    --tb-bg:rgba(30,41,59,0.35);
+    --th:rgba(30,41,59,0.6);
+    --rowbg:rgba(2,6,23,0.2);
+    --card:rgba(30,41,59,0.45);
+
+    --ibox:rgba(0,0,0,0.2);
+    --btn:rgba(148,163,184,0.25);
+    --btn-act:rgba(100,116,139,0.35);
+    --btn-create:rgba(148,163,184,0.25);
+    --btn-del:rgba(185,28,28,0.22);
+    --btn-dis:rgba(100,116,139,0.25);
+  }
+}
+
+/* ---- light theme soften ---- */
+:root[data-theme="light"]{
+  --header-bg: rgba(255,255,255,0.55);
+  --toolbar-bg: rgba(255,255,255,0.55);
+  --field-bg: #ffffff;
+  --fg: #111827;
+}
+:root[data-theme="dark"]{
+  --field-bg: #0f172a;
+}

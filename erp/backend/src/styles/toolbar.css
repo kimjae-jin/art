@@ -1,0 +1,31 @@
+:root{
+  --tb-gap:8px;
+  /* light tones */
+  --tb-fg:#111827; --tb-bg:#fff; --tb-border:#e5e7eb;
+  --tb-chip-bg:#f3f4f6; --tb-chip-fg:#111827;
+  --tb-btn-fg:#111827; --tb-btn-bg:#f7f7f8; --tb-btn-border:#e5e7eb;
+  /* low-chroma primary (신규등록) */
+  --tb-primary-fg:#0f172a; --tb-primary-bg:#e8eefc; --tb-primary-border:#d7e2fb;
+  /* inputs */
+  --tb-input-bg:#fff; --tb-input-fg:#111827; --tb-input-ph:#6b7280; --tb-input-border:#d1d5db;
+}
+:root[data-theme="dark"]{
+  --tb-fg:#e5e7eb; --tb-bg:transparent; --tb-border:#374151;
+  --tb-chip-bg:#1f2937; --tb-chip-fg:#e5e7eb;
+  --tb-btn-fg:#e5e7eb; --tb-btn-bg:#111827; --tb-btn-border:#374151;
+  --tb-primary-fg:#e5e7eb; --tb-primary-bg:#1e293b; --tb-primary-border:#334155;
+  --tb-input-bg:#0b1220; --tb-input-fg:#e5e7eb; --tb-input-ph:#94a3b8; --tb-input-border:#334155;
+}
+.toolbar{display:flex;align-items:center;gap:var(--tb-gap);padding:8px 0;}
+.toolbar .left{display:flex;align-items:center;gap:var(--tb-gap);}
+.toolbar .right{display:flex;align-items:center;gap:var(--tb-gap);margin-left:auto;}
+.tb-input{height:32px;padding:0 10px;border-radius:8px;width:340px;background:var(--tb-input-bg);color:var(--tb-input-fg);border:1px solid var(--tb-input-border);}
+.tb-input::placeholder{color:var(--tb-input-ph);}
+.tb-chip{height:32px;padding:0 10px;border-radius:8px;background:var(--tb-chip-bg);color:var(--tb-chip-fg);border:1px solid var(--tb-border);}
+.tb-btn{height:32px;padding:0 12px;border-radius:8px;background:var(--tb-btn-bg);color:var(--tb-btn-fg);border:1px solid var(--tb-btn-border);}
+.tb-btn.ghost{background:transparent;}
+.tb-btn.primary{background:var(--tb-primary-bg);color:var(--tb-primary-fg);border:1px solid var(--tb-primary-border);}
+.status-chip{display:inline-block;min-width:48px;text-align:center;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid var(--tb-border);}
+.status-재직{background:rgba(34,197,94,.08);}
+.status-퇴직예정{background:rgba(234,179,8,.10);}
+.status-퇴직{background:rgba(239,68,68,.10);}

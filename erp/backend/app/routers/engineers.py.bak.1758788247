@@ -1,0 +1,128 @@
+from fastapi import APIRouter, Body
+from fastapi.responses import StreamingResponse
+from sqlalchemy.sql import text
+from app.db import SessionLocal
+from io import StringIO, BytesIO
+import csv
+from collections import OrderedDict
+from typing import List, Dict, Any
+
+router = APIRouter(prefix="/engineers", tags=["engineers"])
+
+@router.get("")
+def list_engineers(limit: int = 5000, offset: int = 0):
+    sql = text("""
+        SELECT
+          e.id,
+          '' AS engineer_code,      -- UI 호환
+          e.employee_no,
+          e.name,
+          e.status,
+          e.joined_at,
+          e.retired_at,
+          e.address,
+          e.phone,
+          e.dept,
+          e.resign_expected_at,
+          e.note
+        FROM engineers e
+        ORDER BY e.id ASC
+        LIMIT :limit OFFSET :offset
+    """)
+    with SessionLocal() as s:
+        rows = s.execute(sql, {"limit": limit, "offset": offset}).mappings().all()
+        return {"items": [dict(r) for r in rows]}
+
+@router.post("/bulk-delete")
+def bulk_delete(payload: Dict[str, Any] = Body(...)):
+    ids: List[int] = payload.get("ids") or []
+    if not ids:
+        return {"deleted": 0}
+    sql = text("DELETE FROM engineers WHERE id = ANY(:ids)")
+    with SessionLocal() as s:
+        s.execute(sql, {"ids": ids})
+        s.commit()
+        return {"deleted": len(ids)}
+
+@router.post("/import-csv")
+def import_csv(payload: Dict[str, Any] = Body(...)):
+    rows = payload.get("rows") or []
+    if not isinstance(rows, list):
+        return {"saved": 0}
+    sql = text("""
+      INSERT INTO engineers (employee_no, name, status, joined_at, retired_at, address, phone, dept, resign_expected_at, note)
+      VALUES (:employee_no, :name, :status, :joined_at, :retired_at, :address, :phone, :dept, :resign_expected_at, :note)
+      ON CONFLICT (employee_no) DO UPDATE
+      SET name=EXCLUDED.name,
+          status=EXCLUDED.status,
+          joined_at=EXCLUDED.joined_at,
+          retired_at=EXCLUDED.retired_at,
+          address=EXCLUDED.address,
+          phone=EXCLUDED.phone,
+          dept=EXCLUDED.dept,
+          resign_expected_at=EXCLUDED.resign_expected_at,
+          note=EXCLUDED.note
+    """)
+    saved = 0
+    def get(r, *alts):
+        for k in alts:
+            v = r.get(k)
+            if v not in (None, ""):
+                return v
+        return None
+    with SessionLocal() as s:
+        for r in rows:
+            params = {
+              "employee_no": (get(r, "employee_no", "사번") or "").strip(),
+              "name": (get(r, "name", "성명") or "").strip(),
+              "status": get(r, "status", "상태"),
+              "joined_at": get(r, "joined_at", "입사일"),
+              "retired_at": get(r, "retired_at", "퇴사일"),
+              "address": get(r, "address", "주소"),
+              "phone": get(r, "phone", "연락처"),
+              "dept": get(r, "dept", "부서"),
+              "resign_expected_at": get(r, "resign_expected_at", "퇴사예정일"),
+              "note": get(r, "note", "비고"),
+            }
+            s.execute(sql, params)
+            saved += 1
+        s.commit()
+    return {"saved": saved}
+
+@router.get("/export-csv")
+def export_csv():
+    # 내보내기 헤더(한글 고정)
+    header_map = OrderedDict([
+        ("employee_no", "사번"),
+        ("name", "성명"),
+        ("status", "상태"),
+        ("joined_at", "입사일"),
+        ("address", "주소"),
+        ("phone", "연락처"),
+        ("dept", "부서"),
+        ("resign_expected_at", "퇴사예정일"),
+        ("retired_at", "퇴사일"),
+        ("note", "비고"),
+    ])
+    cols = list(header_map.keys())
+
+    sql = text(f"""
+        SELECT {", ".join(cols)}
+        FROM engineers
+        ORDER BY id ASC
+    """)
+    with SessionLocal() as s:
+        rows = [dict(r) for r in s.execute(sql).mappings().all()]
+
+    # CSV (UTF-8 with BOM → Excel 한글 깨짐 방지)
+    sio = StringIO()
+    writer = csv.writer(sio)
+    writer.writerow(list(header_map.values()))  # 한글 헤더
+    for r in rows:
+        writer.writerow([r.get(k, "") or "" for k in cols])
+    data = sio.getvalue().encode("utf-8-sig")
+    bio = BytesIO(data)
+
+    resp = StreamingResponse(bio, media_type="text/csv; charset=utf-8")
+    resp.headers["Content-Disposition"] = 'attachment; filename="기술인목록.csv"'
+    return resp

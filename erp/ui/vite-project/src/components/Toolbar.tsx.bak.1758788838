@@ -1,0 +1,102 @@
+import { useMemo, useRef, type ChangeEvent } from "react";
+
+type Props = {
+  keyword: string;
+  status: "" | "재직" | "퇴사예정" | "퇴사";
+  onKeyword: (v: string) => void;
+  onStatus: (v: string) => void;
+  onBulkDelete: () => void;
+  /** 파일을 선택하면 Toolbar가 file을 부모로 전달합니다 */
+  onImport?: (file: File) => void | Promise<void>;
+  onView: (v: "list"|"card") => void;
+  view: "list"|"card";
+  onCreate: () => void;
+  /** 선택: 내보내기 링크를 외부에서 주입하고 싶을 때 */
+  exportHref?: string;
+  /** 선택: 현재 선택 건수(표시만) */
+  selectedCount?: number;
+};
+
+const API = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/,"");
+
+export default function Toolbar({
+  keyword, status, onKeyword, onStatus,
+  onBulkDelete, onImport, onView, view, onCreate,
+  exportHref, selectedCount
+}: Props){
+  const expHref = useMemo(()=> exportHref ?? `${API}/engineers/export-csv`, [exportHref]);
+  const fileRef = useRef<HTMLInputElement|null>(null);
+
+  const openFile = () => fileRef.current?.click();
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일 다시 선택 가능하도록 초기화
+    if (f && onImport) onImport(f);
+  };
+
+  return (
+    <div className="page-toolbar" style={{
+      display:"flex", alignItems:"center", gap:8, padding:"8px 10px",
+      borderBottom:"1px solid var(--brd)"
+    }}>
+      {/* 좌측: 검색, 상태, 선택삭제, 내보내기, 불러오기 */}
+      <div style={{display:"flex", gap:8, alignItems:"center"}}>
+        <input
+          type="text" value={keyword}
+          onChange={(e) => onKeyword(e.target.value)}
+          placeholder="검색: 사번/성명/부서/연락처/주소"
+          style={{ width:280, padding:"6px 10px", background:"var(--ibox)", color:"var(--fg)", border:"1px solid var(--brd)", borderRadius:6 }}
+        />
+        <select
+          value={status}
+          onChange={(e)=> onStatus(e.target.value as Props["status"])}
+          style={{ padding:"6px 10px", background:"var(--ibox)", color:"var(--fg)", border:"1px solid var(--brd)", borderRadius:6 }}
+        >
+          <option value="">상태</option>
+          <option value="재직">재직</option>
+          <option value="퇴사예정">퇴사예정</option>
+          <option value="퇴사">퇴사</option>
+        </select>
+
+        <button className="btn delete" onClick={onBulkDelete}
+          style={{ padding:"6px 10px", borderRadius:6, background:"var(--btn-del)", color:"var(--fg)", border:"1px solid var(--brd)" }}>
+          선택삭제{typeof selectedCount==="number" ? ` (${selectedCount})` : ""}
+        </button>
+
+        {/* CSV 내보내기: a + download → 브라우저가 즉시 다운로드 */}
+        <a className="btn"
+           href={expHref}
+           download
+           style={{ padding:"6px 10px", borderRadius:6, background:"var(--btn)", color:"var(--fg)", border:"1px solid var(--brd)", textDecoration:"none" }}>
+          CSV 내보내기
+        </a>
+
+        <button className="btn" onClick={openFile}
+          style={{ padding:"6px 10px", borderRadius:6, background:"var(--btn)", color:"var(--fg)", border:"1px solid var(--brd)" }}>
+          불러오기
+        </button>
+        <input ref={fileRef} type="file" accept=".csv,.xlsx" onChange={handleFile} style={{display:"none"}} />
+      </div>
+
+      {/* 우측: 목록/카드/신규등록(저채도) */}
+      <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+        <button
+          className={`btn ${view==="list"?"active":""}`}
+          onClick={()=>onView("list")}
+          style={{ padding:"6px 10px", borderRadius:6, background: view==="list"?"var(--btn-act)":"var(--btn)", color:"var(--fg)", border:"1px solid var(--brd)" }}>
+          목록
+        </button>
+        <button
+          className={`btn ${view==="card"?"active":""}`}
+          onClick={()=>onView("card")}
+          style={{ padding:"6px 10px", borderRadius:6, background: view==="card"?"var(--btn-act)":"var(--btn)", color:"var(--fg)", border:"1px solid var(--brd)" }}>
+          카드
+        </button>
+        <button className="btn create" onClick={onCreate}
+          style={{ padding:"6px 10px", borderRadius:6, background:"var(--btn-create)", color:"var(--fg)", border:"1px solid var(--brd)" }}>
+          신규등록
+        </button>
+      </div>
+    </div>
+  );
+}

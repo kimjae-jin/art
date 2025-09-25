@@ -1,0 +1,153 @@
+import os,re,sys,glob
+import pandas as pd
+
+ROOT=os.path.expanduser("~/Desktop/Art")
+SRC=os.path.join(ROOT,"engineers.csv")
+if len(sys.argv)>1 and os.path.isfile(sys.argv[1]): SRC=os.path.abspath(sys.argv[1])
+encs=["utf-8-sig","utf-8","cp949","euc-kr"]
+df=None
+err=None
+for enc in encs:
+    try:
+        df=pd.read_csv(SRC,encoding=enc)
+        break
+    except Exception as e:
+        err=e
+if df is None:
+    print(f"CSV_READ_ERROR:{type(err).__name__}:{err}")
+    sys.exit(3)
+
+def norm(s): return re.sub(r'[\s\-/_.]+','',str(s).strip().lower())
+cols={c:norm(c) for c in df.columns}
+
+def pick(*names):
+    for n in names:
+        nn=norm(n)
+        for c,cn in cols.items():
+            if cn==nn: return c
+    return None
+
+c_emp   = pick("사번","employee_no","empno")
+c_name  = pick("성명","이름","name")
+c_rrn   = pick("생년월일","주민등록번호","rrn","birthdate")
+c_join  = pick("입사일","joindate")
+c_addr  = pick("주소","address")
+c_mob   = pick("연락처","휴대폰","휴대전화","모바일","전화번호","mobile")
+c_dept  = pick("부서","department")
+c_ret_exp = pick("퇴사예정일","retire_expected","퇴직예정일")
+c_ret   = pick("퇴사일","퇴직일","retiredate")
+c_note  = pick("비고","메모","note")
+
+req_missing=[]
+for cname,label in [(c_name,"성명"),(c_emp,"사번"),(c_rrn,"생년월일(주민번호)")]:
+    if cname is None: req_missing.append(label)
+
+def parse_birth_from_rrn(v):
+    if v is None or str(v).strip()=="":
+        return None
+    s=str(v).strip().replace(" ","")
+    m=re.match(r'^(\d{2})(\d{2})(\d{2})[-]?(\\d)(\\d{6})$',s)
+    if not m:
+        m=re.match(r'^(\d{2})(\d{2})(\d{2})[-]?(\\d)',s)
+    if m:
+        yy=int(m.group(1)); mm=int(m.group(2)); dd=int(m.group(3))
+        sdig=int(s.split("-")[1][0]) if "-" in s and s.split("-")[1][:1].isdigit() else int(s[6])
+        if sdig in [1,2,5,6,7,8]: century=1900
+        elif sdig in [3,4,9,0]: century=2000
+        else: century=1900
+        year=century+yy
+        try:
+            return pd.to_datetime(f"{year:04d}-{mm:02d}-{dd:02d}",format="%Y-%m-%d",errors="raise").date()
+        except Exception:
+            return None
+    for fmt in ["%Y-%m-%d","%Y/%m/%d","%Y.%m.%d","%Y%m%d","%y-%m-%d","%y/%m/%d","%y.%m.%d","%m/%d/%y","%m/%d/%Y"]:
+        try:
+            return pd.to_datetime(str(v).strip(),format=fmt,errors="raise").date()
+        except Exception:
+            pass
+    try:
+        return pd.to_datetime(str(v).strip(),errors="coerce").date()
+    except Exception:
+        return None
+
+def fmt_dot(d):
+    if d is None or pd.isna(d): return ""
+    dt=pd.to_datetime(d)
+    return f"{dt.year:04d}.{dt.month:02d}.{dt.day:02d}."
+
+def last4_phone(v):
+    if v is None: return ""
+    digits=re.sub(r'\\D','',str(v))
+    return digits[-4:] if len(digits)>=4 else digits
+
+def to_date(v):
+    if v is None or str(v).strip()=="":
+        return None
+    for fmt in ["%Y-%m-%d","%Y/%m/%d","%Y.%m.%d","%Y%m%d","%m/%d/%y","%m/%d/%Y","%y-%m-%d","%y/%m/%d","%y.%m.%d"]:
+        try:
+            return pd.to_datetime(str(v).strip(),format=fmt,errors="raise").date()
+        except Exception:
+            pass
+    try:
+        return pd.to_datetime(str(v).strip(),errors="coerce").date()
+    except Exception:
+        return None
+
+out=pd.DataFrame()
+out["employee_no"]=df[c_emp] if c_emp else ""
+out["name"]=df[c_name] if c_name else ""
+birth_raw = df[c_rrn] if c_rrn else pd.Series([None]*len(df))
+birth_date=birth_raw.apply(parse_birth_from_rrn)
+out["birthdate"]=birth_date.astype("string")
+out["birthdate_print"]=birth_date.apply(fmt_dot)
+
+join_date=df[c_join].apply(to_date) if c_join else pd.Series([None]*len(df))
+out["join_date"]=join_date.astype("string")
+out["join_date_print"]=join_date.apply(fmt_dot)
+
+out["address"]=df[c_addr] if c_addr else ""
+out["department"]=df[c_dept] if c_dept else ""
+out["mobile"]=df[c_mob] if c_mob else ""
+out["mobile_last4"]=out["mobile"].apply(last4_phone)
+out["mobile_print"]=out["mobile_last4"]
+
+ret_date=df[c_ret].apply(to_date) if c_ret else pd.Series([None]*len(df))
+ret_exp=df[c_ret_exp].apply(to_date) if c_ret_exp else pd.Series([None]*len(df))
+out["retire_date"]=ret_date.astype("string")
+out["retire_date_print"]=ret_date.apply(fmt_dot)
+out["retire_expected"]=ret_exp.astype("string")
+out["retire_expected_print"]=ret_exp.apply(fmt_dot)
+
+out["note"]=df[c_note] if c_note else ""
+
+if "employee_no" in out and out["employee_no"].notna().any():
+    base=out["employee_no"].astype(str).fillna("")
+else:
+    base=(out["name"].astype(str).fillna("")+"_"+out["birthdate"].astype(str).fillna(""))
+out["engineer_id"]=["ENG_"+re.sub(r'[^0-9A-Za-z]+','',b) if b else f"ENG{str(i+1).zfill(6)}" for i,b in enumerate(base)]
+
+cols_final=["engineer_id","employee_no","name","birthdate","birthdate_print","join_date","join_date_print","department","address","mobile_last4","mobile_print","retire_expected","retire_expected_print","retire_date","retire_date_print","note"]
+for c in cols_final:
+    if c not in out.columns: out[c]=""
+out=out[cols_final]
+
+missing=[]
+if out["name"].fillna("").eq("").any(): missing.append("name")
+if out["employee_no"].fillna("").eq("").any(): pass
+if out["birthdate"].fillna("").eq("").any(): pass
+
+os.makedirs(os.path.join(ROOT,"data"),exist_ok=True)
+OUT_CSV=os.path.join(ROOT,"data","engineers_normalized.csv")
+OUT_PREV=os.path.join(ROOT,"data","engineers_preview.txt")
+out.to_csv(OUT_CSV,index=False,encoding="utf-8-sig")
+
+with open(OUT_PREV,"w",encoding="utf-8") as f:
+    f.write(str(out.head(5)))
+
+print(f"SRC_FILE:{SRC}")
+print(f"ROWS:{len(out)}")
+print("PRESENT:employee_no,name,birthdate,join_date,address,mobile,department,retire_expected,retire_date,note")
+print("MISSING_REQ:" + (",".join(missing) if missing else ""))
+print("NORMALIZED_CSV:"+OUT_CSV)
+print("PREVIEW_TXT:"+OUT_PREV)
+sys.exit(0 if not missing else 1)

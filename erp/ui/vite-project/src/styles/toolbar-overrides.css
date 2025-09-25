@@ -1,54 +1,66 @@
-/* ===== Toolbar 색상만 덮어쓰기: 레이아웃/정렬 건드리지 않음 ===== */
+/* ===== Toolbar minimal tones (both light/dark) ===== */
 
-/* 라이트 모드(중성 톤) */
-:root {
-  --input-bg:#f6f7f9;
-  --input-fg:#0e1726;
-  --btn-bg:#eef0f3;
-  --btn-fg:#0e1726;
-  --btn-border:#d6d9de;
-
-  /* 신규등록(저채도) */
-  --btn-muted-bg:#e6e8ec;
-  --btn-muted-fg:#0e1726;
-  --btn-muted-border:#cfd3d9;
+:root{
+  --tb-fg:#1f2937;            /* 글자 */
+  --tb-bg:transparent;        /* 배경은 투명 유지 */
+  --tb-bd:#c7cdd6;            /* 경계선 - 저채도 그레이 */
+  --tb-bg-hover:#f4f6f9;      /* 살짝만 밝아지는 hover */
+  --tb-create-bg:#eceff3;     /* 신규등록 버튼 - 낮은 채도 그레이 */
+  --tb-create-fg:#111827;
 }
 
-/* 다크 모드(중성 톤) */
-[data-theme="dark"], .dark {
-  --input-bg:#121825;
-  --input-fg:#e7eaf0;
-  --btn-bg:#1b2434;
-  --btn-fg:#e7eaf0;
-  --btn-border:#2a354a;
-
-  /* 신규등록(저채도) */
-  --btn-muted-bg:#273149;
-  --btn-muted-fg:#e7eaf0;
-  --btn-muted-border:#344264;
+:root[data-theme="dark"]{
+  --tb-fg:#e5e7eb;
+  --tb-bg:transparent;
+  --tb-bd:#3b4252;
+  --tb-bg-hover:#11141a;
+  --tb-create-bg:#2a2f39;     /* 다크에서도 과채도 금지 */
+  --tb-create-fg:#e5e7eb;
 }
 
-/* 공통 위에 덮어쓰기 - 정렬/구조 그대로 유지 */
-.toolbar input[type="text"],
-.toolbar select{
-  background:var(--input-bg);
-  color:var(--input-fg);
-  border:1px solid var(--btn-border);
+/* 래퍼 */
+.tb-wrap{
+  display:flex; align-items:center; gap:12px;
+  padding:8px 10px; border-bottom:1px solid var(--tb-bd);
 }
+.tb-left{ display:flex; align-items:center; gap:8px; }
+.tb-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
 
-.toolbar .btn{
-  background:var(--btn-bg);
-  color:var(--btn-fg);
-  border:1px solid var(--btn-border);
+/* 입력류 */
+.tb-input, .tb-select{
+  height:32px; padding:0 10px;
+  background:var(--tb-bg);
+  color:var(--tb-fg);
+  border:1px solid var(--tb-bd);
+  border-radius:8px; outline:none;
 }
+.tb-input::placeholder{ opacity:.6; }
 
-/* 오른쪽 그룹의 '마지막 버튼(=신규등록)'을 자동 저채도로 */
-.toolbar .right .btn:last-child{
-  background:var(--btn-muted-bg);
-  color:var(--btn-muted-fg);
-  border-color:var(--btn-muted-border);
+/* 일반 버튼 */
+.tb-btn{
+  height:32px; padding:0 10px;
+  background:var(--tb-bg);
+  color:var(--tb-fg);
+  border:1px solid var(--tb-bd);
+  border-radius:8px; cursor:pointer;
+  text-decoration:none; display:inline-flex; align-items:center; gap:6px;
 }
+.tb-btn:hover{ background:var(--tb-bg-hover); }
+.tb-btn[disabled]{ opacity:.5; cursor:not-allowed; }
 
-/* 살짝만 상호작용 톤 */
-.toolbar .btn:hover{ filter:brightness(1.04); }
-.toolbar .btn:active{ transform:translateY(1px); }
+/* 신규등록(저채도) */
+.tb-btn.create{
+  background:var(--tb-create-bg);
+  color:var(--tb-create-fg);
+  border-color:var(--tb-bd);
+}
+.tb-btn.create:hover{ filter:brightness(0.98); }
+
+/* 목록/카드 토글 */
+.seg{ display:inline-flex; border:1px solid var(--tb-bd); border-radius:8px; overflow:hidden; }
+.seg-btn{
+  height:32px; padding:0 10px; background:transparent; color:var(--tb-fg);
+  border:0; cursor:pointer;
+}
+.seg-btn + .seg-btn{ border-left:1px solid var(--tb-bd); }
+.seg-btn.on{ background:var(--tb-bg-hover); font-weight:600; }

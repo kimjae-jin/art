@@ -1,66 +1,96 @@
 import type { ChangeEvent } from "react";
-import "./../styles/toolbar.css";
+
+type ViewMode = "list" | "card";
 
 type Props = {
-  q: string;
-  onChangeQ: (v: string) => void;
-  status: string;
-  onChangeStatus: (v: string) => void;
-  onDeleteSelected?: () => void;
-  exportHref?: string;                 // 예: "/engineers/export-csv"
-  onImportClick?: () => void;          // 파일 선택 모달/다이얼로그 트리거
-  onList?: () => void;
-  onCard?: () => void;
-  onCreate?: () => void;
-  createLabel?: string;                // "신규 등록"
+  keyword: string;
+  onKeyword: (v: string) => void;
+  status: "" | "재직" | "퇴사예정" | "퇴사";
+  onStatus: (v: string) => void;
+  onBulkDelete: () => Promise<void>;
+  onImport: (file: File) => Promise<void>;
+  exportHref: string;                 // CSV 내보내기 링크
+  view: ViewMode;                     // 목록/카드
+  onView: (v: ViewMode) => void;
+  onCreate: () => void;               // 신규등록
+  selectedCount: number;              // 선택 개수 표시
 };
 
 export default function Toolbar({
-  q, onChangeQ, status, onChangeStatus,
-  onDeleteSelected, exportHref, onImportClick,
-  onList, onCard, onCreate, createLabel = "신규 등록",
+  keyword, onKeyword,
+  status, onStatus,
+  onBulkDelete,
+  onImport,
+  exportHref,
+  view, onView,
+  onCreate,
+  selectedCount
 }: Props) {
+
+  const onFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onImport(f);
+    // 같은 파일 다시 선택해도 change 발생하도록 리셋
+    e.target.value = "";
+  };
+
   return (
-    <div className="toolbar">
-      {/* 좌측: 찾기박스, 상태, 선택삭제, 내보내기, 불러오기 */}
-      <div className="left">
+    <div className="tb-wrap">
+      <div className="tb-left">
         <input
           className="tb-input"
-          placeholder="검색: 사번/성명/부서/연락처/주소"
-          value={q}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => onChangeQ(e.target.value)}
+          placeholder="검색"
+          value={keyword}
+          onChange={(e)=>onKeyword(e.target.value)}
         />
+
         <select
-          className="tb-chip"
+          className="tb-select"
           value={status}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => onChangeStatus(e.target.value)}
+          onChange={(e)=>onStatus(e.target.value as Props["status"])}
         >
           <option value="">상태</option>
           <option value="재직">재직</option>
-          <option value="퇴직예정">퇴직예정</option>
-          <option value="퇴직">퇴직</option>
+          <option value="퇴사예정">퇴사예정</option>
+          <option value="퇴사">퇴사</option>
         </select>
 
-        <button className="tb-btn ghost" onClick={onDeleteSelected}>선택삭제</button>
-
-        {/* 내보내기: 반드시 <a download> */}
-        <a
+        <button
           className="tb-btn"
-          href={exportHref ?? "#"}
-          download
-          onClick={(e) => {
-            if (!exportHref) e.preventDefault();
-          }}
-        >CSV 내보내기</a>
+          onClick={onBulkDelete}
+          disabled={selectedCount === 0}
+          title={selectedCount ? `${selectedCount}개 삭제` : "선택 항목 없음"}
+        >
+          선택삭제
+        </button>
 
-        <button className="tb-btn" onClick={onImportClick}>불러오기(CSV/XLSX)</button>
+        <a className="tb-btn"
+           href={exportHref}
+           download>
+          CSV 내보내기
+        </a>
+
+        <label className="tb-btn">
+          불러오기
+          <input type="file" accept=".csv" onChange={onFile} hidden />
+        </label>
       </div>
 
-      {/* 우측: 목록, 카드, 신규등록(저채도) */}
-      <div className="right">
-        <button className="tb-btn ghost" onClick={onList}>목록</button>
-        <button className="tb-btn ghost" onClick={onCard}>카드</button>
-        <button className="tb-btn primary" onClick={onCreate}>{createLabel}</button>
+      <div className="tb-right">
+        <div className="seg">
+          <button
+            className={`seg-btn ${view==="list"?"on":""}`}
+            onClick={()=>onView("list")}
+          >목록</button>
+          <button
+            className={`seg-btn ${view==="card"?"on":""}`}
+            onClick={()=>onView("card")}
+          >카드</button>
+        </div>
+
+        <button className="tb-btn create" onClick={onCreate}>
+          신규등록
+        </button>
       </div>
     </div>
   );

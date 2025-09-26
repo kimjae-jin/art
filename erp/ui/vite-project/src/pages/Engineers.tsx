@@ -1,164 +1,196 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import Toolbar from "../components/Toolbar";
 
 type Row = {
   id: number;
-  engineer_code: string;
   employee_no: string;
   name: string;
-  status: string;
-  joined_at: string|null;
-  retired_at: string|null;
-  gender: string;
-  birth: string;
-  address: string;
-  phone: string;
-  dept: string;
-  resign_expected_at: string;
-  note: string;
+  status: "" | "재직" | "퇴사예정" | "퇴사";
+  joined_at?: string | null;
+  retired_at?: string | null;
 };
-
-async function apiGet<T=any>(url:string){ const r=await fetch(url); if(!r.ok) throw new Error(await r.text()); return r.json() as Promise<T>; }
-async function apiPost<T=any>(url:string, body:any){
-  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  if(!r.ok) throw new Error(await r.text()); return r.json() as Promise<T>;
-}
 
 export default function Engineers(){
   const [items, setItems] = useState<Row[]>([]);
-  const [keyword, setKeyword] = useState("");           // 검색
+  const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<""|"재직"|"퇴사예정"|"퇴사">("");
-  const [view, setView] = useState<"list"|"card">("list");
   const [selected, setSelected] = useState<number[]>([]);
-  const [sortKey, setSortKey] = useState<keyof Row>("id");
-  const [sortAsc, setSortAsc] = useState(true);
+  const [view, setView] = useState<"list"|"card">("list");
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({employee_no:"", name:"", status:"재직", joined_at:"", retired_at:""});
+
+  const fetchList = async ()=>{
+    const params = new URLSearchParams();
+    params.set("limit","5000");
+    if (keyword) params.set("keyword", keyword);
+    if (status) params.set("status", status);
+    const r = await fetch(`http://127.0.0.1:8000/engineers?${params.toString()}`);
+    const j = await r.json();
+    setItems(j.items || []);
+    setSelected([]);
+  };
+
+  useEffect(()=>{ fetchList(); },[]);
+  useEffect(()=>{ fetchList(); },[keyword, status]);
+
+  const onBulkDelete = async ()=>{
+    if (!selected.length) return;
+    await fetch("http://127.0.0.1:8000/engineers/bulk-delete", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ids: selected})
+    });
+    fetchList();
+  };
+
+  const onImport = async (file: File)=>{
+    const text = await file.text();
+    // CSV 간단 파서: 첫 줄 헤더, 쉼표 기준
+    const [h, ...lines] = text.replace(/\r/g,"").split("\n").filter(Boolean);
+    const headers = h.split(",").map(s=>s.trim());
+    const rows = lines.map(line=>{
+      const cols = line.split(",");
+      const rec: any = {};
+      headers.forEach((k, i)=> rec[k] = (cols[i] ?? "").trim());
+      return rec;
+    });
+    await fetch("http://127.0.0.1:8000/engineers/import-csv", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({rows})
+    });
+    await fetchList();
+  };
 
   const allChecked = selected.length>0 && selected.length===items.length;
   const hasSomeChecked = selected.length>0 && selected.length<items.length;
-  const headerCbRef = useRef<HTMLInputElement|null>(null);
-  useEffect(()=>{ if(headerCbRef.current){ headerCbRef.current.indeterminate = hasSomeChecked && !allChecked; } },[hasSomeChecked,allChecked]);
 
-  async function load(){
-    const p = new URLSearchParams();
-    if(keyword) p.set("keyword",keyword);
-    if(status)  p.set("status",status);
-    const data = await apiGet<{items:Row[]}>(`/engineers?limit=5000&${p.toString()}`);
-    setItems(data.items||[]); setSelected([]);
-  }
-  useEffect(()=>{ load(); },[]);
-  useEffect(()=>{ const t=setTimeout(load,200); return ()=>clearTimeout(t); },[keyword,status]);
+  const toggleAll = ()=>{
+    if (selected.length) setSelected([]);
+    else setSelected(items.map(r=>r.id));
+  };
 
-  const sorted = useMemo(()=>{
-    const c=[...items];
-    c.sort((a,b)=>{
-      const av=(a[sortKey]??"") as any, bv=(b[sortKey]??"") as any;
-      if(av<bv) return sortAsc? -1:1; if(av>bv) return sortAsc? 1:-1; return 0;
+  const toggleOne = (id:number)=>{
+    setSelected(prev=> prev.includes(id)? prev.filter(x=>x!==id) : [...prev, id]);
+  };
+
+  const exportHref = "http://127.0.0.1:8000/engineers/export-csv";
+
+  const onCreate = ()=>{
+    setForm({employee_no:"", name:"", status:"재직", joined_at:"", retired_at:""});
+    setShowCreate(true);
+  };
+  const onSaveCreate = async ()=>{
+    const row = {
+      "사번": form.employee_no,
+      "성명": form.name,
+      "상태": form.status,
+      "입사일": form.joined_at || "",
+      "퇴사일": form.retired_at || ""
+    };
+    await fetch("http://127.0.0.1:8000/engineers/import-csv", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({rows:[row]})
     });
-    return c;
-  },[items,sortKey,sortAsc]);
-
-  function toggleSort(k: keyof Row){ if(sortKey===k) setSortAsc(!sortAsc); else { setSortKey(k); setSortAsc(true); } }
-  function toggleAll(ch:boolean){ setSelected(ch ? items.map(x=>x.id) : []); }
-  function toggleOne(id:number, ch:boolean){ setSelected(p => ch? [...new Set([...p,id])] : p.filter(x=>x!==id)); }
-
-  async function onBulkDelete(){ if(selected.length===0) return; await apiPost("/engineers/bulk-delete",{ids:selected}); await load(); }
-
-  async function onImport(file: File){
-    const text = await file.text();
-    const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(Boolean);
-    if(lines.length===0) return;
-    const head = lines[0].split(",").map(s=>s.trim().replace(/^"|"$/g,""));
-    const rows = lines.slice(1).map(line=>{
-      const cols = line.split(",").map(s=>s.trim().replace(/^"|"$/g,""));
-      const obj:any={}; head.forEach((h,i)=> obj[h]=cols[i]??"");
-      return {
-        employee_no: obj["사번"]||obj["employee_no"]||"",
-        name:        obj["성명"]||obj["name"]||"",
-        status:      obj["상태"]||obj["status"]||"",
-        joined_at:   obj["입사일"]||obj["joined_at"]||"",
-        retired_at:  obj["퇴사일"]||obj["retired_at"]||"",
-      };
-    }).filter(r=> (r.employee_no||"").trim()!=="" || (r.name||"").trim()!=="");
-    if(rows.length===0) return;
-    await apiPost("/engineers/import-csv",{rows}); await load();
-  }
-
-  function onCreate(){
-    const employee_no=(prompt("사번 (예: hor-001)")||"").trim();
-    const name=(prompt("성명")||"").trim();
-    if(!employee_no || !name) return;
-    apiPost("/engineers/import-csv",{rows:[{employee_no,name,status:"재직"}]}).then(load);
-  }
+    setShowCreate(false);
+    await fetchList();
+  };
 
   return (
-    <div>
+    <div style={{padding:16}}>
       <Toolbar
         keyword={keyword} onKeyword={setKeyword}
         status={status} onStatus={v=>setStatus(v as any)}
         onBulkDelete={onBulkDelete}
-        exportHref="/engineers/export-csv"
+        exportHref={exportHref}
         onImport={onImport}
         view={view} onView={setView}
         onCreate={onCreate}
         selectedCount={selected.length}
       />
 
-      {view==="list" ? (
-        <div className="table-wrap">
-          <table className="table">
+      {/* 목록 */}
+      {view==="list" && (
+        <div style={{marginTop:12}}>
+          <table style={{width:"100%", borderCollapse:"collapse"}}>
             <thead>
-              <tr>
-                <th style={{width:36}}>
-                  <input type="checkbox" ref={headerCbRef} checked={allChecked} onChange={e=>toggleAll(e.target.checked)} />
+              <tr style={{background:"var(--thead-bg,#f5f7fb)"}}>
+                <th style={{padding:"8px", textAlign:"left"}}>
+                  <input type="checkbox"
+                    checked={allChecked}
+                    ref={(el)=>{ if(el) (el as any).indeterminate = hasSomeChecked && !allChecked; }}
+                    onChange={toggleAll}
+                  />
                 </th>
-                <th onDoubleClick={()=>toggleSort("status")}>상태</th>
-                <th onDoubleClick={()=>toggleSort("employee_no")}>사번</th>
-                <th onDoubleClick={()=>toggleSort("name")}>성명</th>
-                <th onDoubleClick={()=>toggleSort("gender")}>성별</th>
-                <th onDoubleClick={()=>toggleSort("birth")}>생년월일</th>
-                <th onDoubleClick={()=>toggleSort("joined_at")}>입사일</th>
-                <th onDoubleClick={()=>toggleSort("address")}>주소</th>
-                <th onDoubleClick={()=>toggleSort("phone")}>연락처</th>
-                <th onDoubleClick={()=>toggleSort("dept")}>부서</th>
-                <th onDoubleClick={()=>toggleSort("resign_expected_at")}>퇴사예정일</th>
-                <th onDoubleClick={()=>toggleSort("retired_at")}>퇴사일</th>
-                <th onDoubleClick={()=>toggleSort("note")}>비고</th>
+                <th style={{padding:"8px", textAlign:"left"}}>상태</th>
+                <th style={{padding:"8px", textAlign:"left"}}>사번</th>
+                <th style={{padding:"8px", textAlign:"left"}}>성명</th>
+                <th style={{padding:"8px", textAlign:"left"}}>입사일</th>
+                <th style={{padding:"8px", textAlign:"left"}}>퇴사일</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.map(r=>(
-                <tr key={r.id} onDoubleClick={()=>alert(`상세: ${r.name}`)}>
-                  <td className="td-center">
-                    <input type="checkbox" checked={selected.includes(r.id)} onChange={e=>toggleOne(r.id,e.target.checked)} />
-                  </td>
-                  <td className="td-center"><span className={`chip ${r.status==="퇴사"?"danger":r.status==="퇴사예정"?"warn":"neutral"}`}>{r.status||""}</span></td>
-                  <td className="td-left">{r.employee_no}</td>
-                  <td className="td-left">{r.name}</td>
-                  <td className="td-center">{r.gender}</td>
-                  <td className="td-center">{r.birth}</td>
-                  <td className="td-center">{r.joined_at||""}</td>
-                  <td className="td-left">{r.address}</td>
-                  <td className="td-left">{r.phone}</td>
-                  <td className="td-left">{r.dept}</td>
-                  <td className="td-center">{r.resign_expected_at}</td>
-                  <td className="td-center">{r.retired_at||""}</td>
-                  <td className="td-left">{r.note}</td>
+              {items.map(r=>(
+                <tr key={r.id} style={{borderTop:"1px solid var(--border)"}}>
+                  <td style={{padding:"8px"}}><input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleOne(r.id)} /></td>
+                  <td style={{padding:"8px"}}>{r.status}</td>
+                  <td style={{padding:"8px"}}>{r.employee_no}</td>
+                  <td style={{padding:"8px"}}>{r.name}</td>
+                  <td style={{padding:"8px"}}>{r.joined_at||""}</td>
+                  <td style={{padding:"8px"}}>{r.retired_at||""}</td>
                 </tr>
               ))}
+              {!items.length && (
+                <tr><td colSpan={6} style={{padding:"16px", opacity:.7}}>데이터가 없습니다.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
-      ) : (
-        <div className="cards">
-          {sorted.map(r=>(
-            <div className="card" key={r.id} onDoubleClick={()=>alert(`상세: ${r.name}`)}>
-              <div className="card-line"><span className={`chip ${r.status==="퇴사"?"danger":r.status==="퇴사예정"?"warn":"neutral"}`}>{r.status||""}</span></div>
-              <div className="card-line"><b>사번</b> {r.employee_no}</div>
-              <div className="card-line"><b>성명</b> {r.name}</div>
-              <div className="card-line"><b>입사일</b> {r.joined_at||""}</div>
-              <div className="card-line"><b>퇴사일</b> {r.retired_at||""}</div>
+      )}
+
+      {/* 카드 */}
+      {view==="card" && (
+        <div style={{marginTop:12, display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))", gap:12}}>
+          {items.map(r=>(
+            <div key={r.id} style={{border:"1px solid var(--border)", borderRadius:12, padding:12}}>
+              <div style={{fontWeight:700}}>{r.name}</div>
+              <div style={{opacity:.8}}>{r.employee_no} · {r.status}</div>
+              <div style={{opacity:.8}}>입사일 {r.joined_at||"-"} / 퇴사일 {r.retired_at||"-"}</div>
             </div>
           ))}
+          {!items.length && <div style={{opacity:.7}}>데이터가 없습니다.</div>}
+        </div>
+      )}
+
+      {/* 신규등록 모달 */}
+      {showCreate && (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(0,0,0,.4)",
+          display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999
+        }}>
+          <div style={{background:"var(--panel-bg,#fff)", color:"var(--fg)", border:"1px solid var(--border)", borderRadius:12, width:420, padding:16}}>
+            <div style={{fontWeight:700, marginBottom:12}}>기술인 신규등록</div>
+            <div style={{display:"grid", gap:8}}>
+              <input placeholder="사번 (예: hor-001)" value={form.employee_no} onChange={e=>setForm({...form, employee_no:e.target.value})}
+                     style={{padding:"8px", border:"1px solid var(--border)", borderRadius:8, background:"var(--input-bg)"}} />
+              <input placeholder="성명" value={form.name} onChange={e=>setForm({...form, name:e.target.value})}
+                     style={{padding:"8px", border:"1px solid var(--border)", borderRadius:8, background:"var(--input-bg)"}} />
+              <select value={form.status} onChange={e=>setForm({...form, status:e.target.value})}
+                      style={{padding:"8px", border:"1px solid var(--border)", borderRadius:8, background:"var(--input-bg)"}}>
+                <option value="재직">재직</option>
+                <option value="퇴사예정">퇴사예정</option>
+                <option value="퇴사">퇴사</option>
+              </select>
+              <input placeholder="입사일 (YYYY-MM-DD)" value={form.joined_at} onChange={e=>setForm({...form, joined_at:e.target.value})}
+                     style={{padding:"8px", border:"1px solid var(--border)", borderRadius:8, background:"var(--input-bg)"}} />
+              <input placeholder="퇴사일 (YYYY-MM-DD)" value={form.retired_at} onChange={e=>setForm({...form, retired_at:e.target.value})}
+                     style={{padding:"8px", border:"1px solid var(--border)", borderRadius:8, background:"var(--input-bg)"}} />
+            </div>
+            <div style={{display:"flex", gap:8, justifyContent:"flex-end", marginTop:12}}>
+              <button onClick={()=>setShowCreate(false)}
+                      style={{padding:"8px 12px", border:"1px solid var(--border)", borderRadius:8, background:"transparent"}}>취소</button>
+              <button onClick={onSaveCreate}
+                      style={{padding:"8px 12px", border:"1px solid var(--border)", borderRadius:8, background:"var(--create-bg,#eceff3)", color:"var(--create-fg,#222)"}}>저장</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

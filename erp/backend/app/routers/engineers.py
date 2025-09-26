@@ -1,52 +1,107 @@
-from urllib.parse import quote
-import csv, io
-from fastapi import Response
-from sqlalchemy import text
-from fastapi import APIRouter, Body
-from fastapi import APIRouter, Query, Body
+from fastapi import APIRouter, Body, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.sql import text
 from app.db import SessionLocal
+from io import StringIO
+import csv
 
 router = APIRouter(prefix="/engineers", tags=["engineers"])
 
-# 공통: 현재 DB에 존재하는 컬럼만 가져오는 SELECT (* 기반)
-LIST_SQL = text("""
-  SELECT * FROM engineers
-  ORDER BY id ASC
-  LIMIT :limit OFFSET :offset
-""")
-
 @router.get("")
-def list_engineers(limit: int = Query(5000, ge=1, le=20000), offset: int = 0):
-    with SessionLocal() as s:
-        rows = s.execute(LIST_SQL, {"limit": limit, "offset": offset}).mappings().all()
-        items = []
-        for r in rows:
-            d = dict(r)
-            # UI 호환을 위해 항상 존재시키는 키
-            d.setdefault("status", None)
-            d.setdefault("employee_no", None)
-            d.setdefault("name", None)
-            d.setdefault("joined_at", None)
-            d.setdefault("retired_at", None)
-            # 아직 DB에 없는 확장키(주소/연락처/부서/비고/퇴사예정일 등)는 프런트에서 '-' 처리
-            d.setdefault("birth", None)
-            d.setdefault("address", None)
-            d.setdefault("phone", None)
-            d.setdefault("dept", None)
-            d.setdefault("resign_expected_at", None)
-            d.setdefault("note", None)
-            items.append(d)
-        return {"items": items}
+def list_engineers(limit: int = Query(5000, ge=1, le=10000), offset: int = 0, keyword: str = "", status: str = ""):
+    sql = """
+        SELECT
+          e.id,
+          '' AS engineer_code,
+          COALESCE(e.employee_no,'') AS employee_no,
+          COALESCE(e.name,'')        AS name,
+          COALESCE(e.status,'')      AS status,
+          e.joined_at,
+          e.retired_at,
 
-# CSV/XLSX Import (rows: [{ 사번/employee_no, 성명/name, 상태/status, 입사일/joined_at, 퇴사일/retired_at }...])
+          ''::text  AS gender,
+          ''::text  AS birth,
+          ''::text  AS address,
+          ''::text  AS phone,
+          ''::text  AS dept,
+          ''::text  AS resign_expected_at,
+          ''::text  AS note
+        FROM engineers e
+        WHERE (:kw = '' OR e.employee_no ILIKE '%'||:kw||'%' OR e.name ILIKE '%'||:kw||'%')
+          AND (:st = '' OR COALESCE(e.status,'') = :st)
+        ORDER BY e.id ASC
+        LIMIT :limit OFFSET :offset
+    """
+    with SessionLocal() as s:
+        rows = s.execute(text(sql), {"kw": keyword, "st": status, "limit": limit, "offset": offset}).mappings().all()
+        return {"items": [dict(r) for r in rows]}
+
+@router.post("/bulk-delete")
+def bulk_delete(payload: dict = Body(...)):
+    ids = payload.get("ids") or []
+    if not ids:
+        return {"deleted": 0}
+    with SessionLocal() as s:
+        res = s.execute(text("DELETE FROM engineers WHERE id = ANY(:ids)"), {"ids": ids})
+        s.commit()
+        return {"deleted": res.rowcount or 0}
+
+@router.get("/export-csv")
+def export_csv():
+    with SessionLocal() as s:
+        rows = s.execute(text("""
+            SELECT
+              e.id,
+              COALESCE(e.employee_no,'') AS employee_no,
+              COALESCE(e.name,'')        AS name,
+              COALESCE(e.status,'')      AS status,
+              e.joined_at,
+              e.retired_at,
+
+              ''::text  AS gender,
+              ''::text  AS birth,
+              ''::text  AS address,
+              ''::text  AS phone,
+              ''::text  AS dept,
+              ''::text  AS resign_expected_at,
+              ''::text  AS note
+            FROM engineers e
+            ORDER BY e.id ASC
+        """)).mappings().all()
+
+        headers = ["번호","사번","성명","성별","생년월일","입사일","주소","연락처","부서","퇴사예정일","퇴사일","비고","상태"]
+        si = StringIO()
+        w = csv.writer(si)
+        w.writerow(headers)
+        for r in rows:
+            w.writerow([
+                r["id"],
+                r["employee_no"],
+                r["name"],
+                r["gender"],
+                r["birth"],
+                (r["joined_at"].isoformat() if r["joined_at"] else ""),
+                r["address"],
+                r["phone"],
+                r["dept"],
+                r["resign_expected_at"],
+                (r["retired_at"].isoformat() if r["retired_at"] else ""),
+                r["note"],
+                r["status"],
+            ])
+
+        si.seek(0)
+        resp = StreamingResponse(iter([si.getvalue()]), media_type="text/csv; charset=utf-8")
+        resp.headers["Content-Disposition"] = "attachment; filename=engineers.csv"
+        return resp
+
 @router.post("/import-csv")
 def import_csv(payload: dict = Body(...)):
     rows = payload.get("rows") or []
     if not isinstance(rows, list):
         return {"saved": 0}
 
-    upsert_sql = text("""
+    upsert = text("""
       INSERT INTO engineers (employee_no, name, status, joined_at, retired_at)
       VALUES (:employee_no, :name, :status, :joined_at, :retired_at)
       ON CONFLICT (employee_no) DO UPDATE
@@ -56,68 +111,17 @@ def import_csv(payload: dict = Body(...)):
           retired_at=EXCLUDED.retired_at
     """)
 
+    def g(v): return (v or "").strip() if isinstance(v, str) else (v or None)
     saved = 0
     with SessionLocal() as s:
         for r in rows:
-            s.execute(upsert_sql, {
-                "employee_no": (r.get("employee_no") or r.get("사번") or "").strip(),
-                "name": (r.get("name") or r.get("성명") or "").strip(),
-                "status": (r.get("status") or r.get("상태") or None) or None,
-                "joined_at": (r.get("joined_at") or r.get("입사일") or None) or None,
-                "retired_at": (r.get("retired_at") or r.get("퇴사일") or None) or None,
+            s.execute(upsert, {
+                "employee_no": g(r.get("employee_no") or r.get("사번")),
+                "name":        g(r.get("name")        or r.get("성명")),
+                "status":      g(r.get("status")      or r.get("상태")),
+                "joined_at":   g(r.get("joined_at")   or r.get("입사일")),
+                "retired_at":  g(r.get("retired_at")  or r.get("퇴사일")),
             })
             saved += 1
         s.commit()
     return {"saved": saved}
-
-# 선택삭제
-@router.post("/bulk-delete")
-def bulk_delete(payload: dict = Body(...)):
-    ids = payload.get("ids") or []
-    if not ids:
-        return {"deleted": 0}
-    sql = text("DELETE FROM engineers WHERE id = ANY(:ids)")
-    with SessionLocal() as s:
-        s.execute(sql, {"ids": ids})
-        s.commit()
-    return {"deleted": len(ids)}
-
-@router.get("/export-csv")
-def export_csv():
-    # 한글 헤더 + UTF-8 BOM
-    header = ["사번","성명","상태","입사일","주소","연락처","부서","퇴사예정일","퇴사일","비고"]
-    sql = text("""
-        SELECT
-          COALESCE(e.employee_no,'')      AS employee_no,
-          COALESCE(e.name,'')             AS name,
-          COALESCE(e.status,'')           AS status,
-          COALESCE(to_char(e.joined_at, 'YYYY-MM-DD'),'')        AS joined_at,
-          COALESCE(e.address,'')          AS address,
-          COALESCE(e.phone,'')            AS phone,
-          COALESCE(e.dept,'')             AS dept,
-          COALESCE(to_char(e.resign_expected_at,'YYYY-MM-DD'),'') AS resign_expected_at,
-          COALESCE(to_char(e.retired_at,'YYYY-MM-DD'),'')         AS retired_at,
-          COALESCE(e.note,'')             AS note
-        FROM engineers e
-        ORDER BY e.id ASC
-    """)
-    with SessionLocal() as s:
-        rows = s.execute(sql).mappings().all()
-
-    buf = io.StringIO()
-    # BOM
-    buf.write("\ufeff")
-    w = csv.writer(buf)
-    w.writerow(header)
-    for r in rows:
-        w.writerow([
-            r["employee_no"], r["name"], r["status"], r["joined_at"],
-            r["address"], r["phone"], r["dept"], r["resign_expected_at"],
-            r["retired_at"], r["note"]
-        ])
-    data = buf.getvalue()
-    resp = Response(content=data, media_type="text/csv; charset=utf-8")
-    # RFC5987 — 한글 파일명 안전
-    filename = "기술인목록.csv"
-    resp.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{quote(filename)}"
-    return resp

@@ -1,34 +1,14 @@
 :root{
-  --bg:#ffffff; --text:#1f2937; --muted:#6b7280;
-  --surface:#f8fafc; --surface-2:#eef2f7; --border:#d6dde6;
-  --input-bg:#ffffff; --input-text:#1f2937; --input-ph:#9aa3ae; --input-border:#c8d1dc;
-  --btn-bg:#f1f5f9; --btn-text:#1f2937; --btn-hover:#e9eef5;
-  --create-bg:#eceff3; --create-text:#1f2937;
-  --header-bg:rgba(255,255,255,.75); --header-border:#e5e7eb; --toolbar-bg:rgba(255,255,255,.65);
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#0b0f14; --text:#e5e7eb; --muted:#93a0ad;
-    --surface:#131a22; --surface-2:#0f151d; --border:#2a3642;
-    --input-bg:#11161d; --input-text:#e5e7eb; --input-ph:#8392a1; --input-border:#2a3642;
-    --btn-bg:#19212b; --btn-text:#e5e7eb; --btn-hover:#212a35;
-    --create-bg:#232c37; --create-text:#e5e7eb;
-    --header-bg:rgba(11,15,20,.75); --header-border:#2a3642; --toolbar-bg:rgba(13,19,26,.65);
-  }
-}
-:root[data-theme="light"]{
-  --bg:#ffffff; --text:#1f2937; --muted:#6b7280;
-  --surface:#f8fafc; --surface-2:#eef2f7; --border:#d6dde6;
-  --input-bg:#ffffff; --input-text:#1f2937; --input-ph:#9aa3ae; --input-border:#c8d1dc;
-  --btn-bg:#f1f5f9; --btn-text:#1f2937; --btn-hover:#e9eef5;
-  --create-bg:#eceff3; --create-text:#1f2937;
-  --header-bg:rgba(255,255,255,.75); --header-border:#e5e7eb; --toolbar-bg:rgba(255,255,255,.65);
+  --bg:#ffffff; --fg:#111827; --muted:#6b7280; --border:#e5e7eb;
+  --header-bg: rgba(255,255,255,0.72); --header-fg:#111827;
+  --tb-bg:#ffffff; --tb-fg:#111827;
+  --btn-bg:#f3f4f6; --btn-fg:#111827;
+  --btn-create-bg:#eceff3; --btn-create-fg:#222;
 }
 :root[data-theme="dark"]{
-  --bg:#0b0f14; --text:#e5e7eb; --muted:#93a0ad;
-  --surface:#131a22; --surface-2:#0f151d; --border:#2a3642;
-  --input-bg:#11161d; --input-text:#e5e7eb; --input-ph:#8392a1; --input-border:#2a3642;
-  --btn-bg:#19212b; --btn-text:#e5e7eb; --btn-hover:#212a35;
-  --create-bg:#232c37; --create-text:#e5e7eb;
-  --header-bg:rgba(11,15,20,.75); --header-border:#2a3642; --toolbar-bg:rgba(13,19,26,.65);
+  --bg:#0b0f14; --fg:#e5e7eb; --muted:#9ca3af; --border:#1f2937;
+  --header-bg: rgba(17,24,39,0.65); --header-fg:#e5e7eb;
+  --tb-bg:#111827; --tb-fg:#d1d5db;
+  --btn-bg:#1f2937; --btn-fg:#e5e7eb;
+  --btn-create-bg:#2a3340; --btn-create-fg:#e5e7eb;
 }
